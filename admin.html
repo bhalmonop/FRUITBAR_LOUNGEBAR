@@ -195,14 +195,16 @@
   </div>
 
   <div class="dashboard" id="dashboard">
-    <div class="dash-header">
-      <h2><em>FRUIT</em>BAR &mdash; Admin</h2>
-      <div class="user-info">
-        <span id="dashUser"></span>
-        <a href="index.html" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);color:#8A8680;text-decoration:none;font-size:13px;transition:all 0.3s" onmouseover="this.style.color='#00a31c'" onmouseout="this.style.color='#8A8680'">View Site</a>
-        <button class="logout-btn" onclick="logout()">Sign Out</button>
+      <div class="dash-header">
+        <h2><em>FRUIT</em>BAR &mdash; Admin</h2>
+        <div class="user-info">
+          <span id="syncStatus" style="font-size:12px;color:var(--text-muted);cursor:pointer" onclick="syncNow()" title="Click to sync now"></span>
+          <span id="dashUser"></span>
+          <a href="index.html" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);color:#8A8680;text-decoration:none;font-size:13px;transition:all 0.3s" onmouseover="this.style.color='#00a31c'" onmouseout="this.style.color='#8A8680'">View Site</a>
+          <button class="logout-btn" onclick="logout()" style="border-color:rgba(255,255,255,0.1)">Sign Out</button>
+          <button class="logout-btn" onclick="openGitHubSettings()" style="border-color:rgba(255,255,255,0.1)">Settings</button>
+        </div>
       </div>
-    </div>
     <div class="dash-body">
       <div class="tab-bar">
         <button class="tab-btn active" id="tabCategories" onclick="switchTab('categories')">Categories</button>
@@ -243,7 +245,127 @@
     const IMAGES_KEY = 'fruitbar_cat_images';
     const SESSION_KEY = 'fruitbar_session';
     const SLIDESHOW_KEY = 'fruitbar_slideshow';
+    const GH_CONFIG_KEY = 'fruitbar_gh_config';
     const TOKEN_DURATION = 30 * 60 * 1000; // 30 minutes
+
+    const GH_OWNER = 'bhalmonop';
+    const GH_REPO = 'FRUITBAR_LOUNGEBAR';
+    const GH_BRANCH = 'main';
+
+    var syncStatusEl = null;
+
+    function getGhConfig() {
+      try { return JSON.parse(localStorage.getItem(GH_CONFIG_KEY)); }
+      catch(e) { return null; }
+    }
+
+    function saveGhConfig(config) {
+      localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(config));
+    }
+
+    function setSyncStatus(text, ok) {
+      if (!syncStatusEl) syncStatusEl = document.getElementById('syncStatus');
+      if (!syncStatusEl) return;
+      syncStatusEl.textContent = text;
+      syncStatusEl.style.color = ok ? 'var(--green-light)' : 'var(--danger)';
+    }
+
+    function base64Encode(str) {
+      var encoded = btoa(unescape(encodeURIComponent(str)));
+      return encoded;
+    }
+
+    async function syncToGitHub() {
+      var config = getGhConfig();
+      if (!config || !config.token) {
+        setSyncStatus('GitHub not configured', false);
+        return;
+      }
+      setSyncStatus('Syncing...', true);
+
+      var menu = JSON.parse(localStorage.getItem(DATA_KEY));
+      var slides = JSON.parse(localStorage.getItem(SLIDESHOW_KEY));
+
+      var headers = {
+        'Authorization': 'token ' + config.token,
+        'Content-Type': 'application/json'
+      };
+      var baseUrl = 'https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO + '/contents/data/';
+
+      var files = [
+        { path: 'menu.json', data: menu, msg: 'Update menu data' },
+        { path: 'slideshow.json', data: slides, msg: 'Update slideshow data' }
+      ];
+
+      for (var i = 0; i < files.length; i++) {
+        var f = files[i];
+        try {
+          var getRes = await fetch(baseUrl + f.path, { headers: headers });
+          var sha = null;
+          if (getRes.ok) {
+            var existing = await getRes.json();
+            sha = existing.sha;
+          }
+
+          var content = base64Encode(JSON.stringify(f.data, null, 2));
+          var body = { message: f.msg, content: content, branch: GH_BRANCH };
+          if (sha) body.sha = sha;
+
+          var putRes = await fetch(baseUrl + f.path, {
+            method: 'PUT', headers: headers, body: JSON.stringify(body)
+          });
+
+          if (!putRes.ok) {
+            var errText = await putRes.text();
+            console.error('GitHub sync failed for ' + f.path + ':', errText);
+            setSyncStatus('Sync failed', false);
+            return;
+          }
+        } catch(e) {
+          console.error('GitHub sync error:', e);
+          setSyncStatus('Sync error', false);
+          return;
+        }
+      }
+
+      setSyncStatus('Synced', true);
+      setTimeout(function() { setSyncStatus('', true); }, 3000);
+    }
+
+    function setupGitHub(token) {
+      saveGhConfig({ token: token });
+      setSyncStatus('Config saved', true);
+    }
+
+    function openGitHubSettings() {
+      var config = getGhConfig();
+      var currentToken = config ? config.token : '';
+      document.getElementById('modalContent').innerHTML =
+        '<h3>GitHub Sync Settings</h3>' +
+        '<label>GitHub Token</label>' +
+        '<input type="password" id="ghToken" value="' + currentToken + '" placeholder="ghp_..." />' +
+        '<div style="margin-bottom:16px;font-size:12px;color:var(--text-muted)">' +
+          'Token needs <strong>repo</strong> scope. ' +
+          'Auto-syncs menu &amp; slideshow on every save.' +
+        '</div>' +
+        '<div class="btn-row">' +
+          '<button class="btn-sm btn-green" onclick="saveGitHubSettings()">Save</button>' +
+          '<button class="btn-sm btn-outline" onclick="closeModal()">Cancel</button>' +
+        '</div>';
+      document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function saveGitHubSettings() {
+      var token = document.getElementById('ghToken').value.trim();
+      if (!token) return;
+      setupGitHub(token);
+      closeModal();
+      syncToGitHub();
+    }
+
+    function syncNow() {
+      syncToGitHub();
+    }
 
     const defaultCreds = { username: 'admin', password: 'admin123' };
     const defaultMenu = {
@@ -433,6 +555,12 @@
       renderItems();
       renderSlideshow();
       startSessionMonitor();
+      var config = getGhConfig();
+      if (config && config.token) {
+        setSyncStatus('Ready', true);
+      } else {
+        setSyncStatus('Setup GitHub', false);
+      }
     }
 
     function getMenu() {
@@ -442,6 +570,7 @@
       localStorage.setItem(DATA_KEY, JSON.stringify(data));
       renderCategories();
       renderItems();
+      syncToGitHub();
     }
     function getImages() {
       return JSON.parse(localStorage.getItem(IMAGES_KEY)) || {};
@@ -449,6 +578,7 @@
     function saveImages(data) {
       localStorage.setItem(IMAGES_KEY, JSON.stringify(data));
       renderCategories();
+      syncToGitHub();
     }
 
     function getSlides() {
@@ -457,6 +587,7 @@
     function saveSlides(data) {
       localStorage.setItem(SLIDESHOW_KEY, JSON.stringify(data));
       renderSlideshow();
+      syncToGitHub();
     }
 
     function renderSlideshow() {

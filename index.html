@@ -563,8 +563,8 @@
         { name: "Mojito", price: 5 }
       ]
     };
-    const stored = localStorage.getItem('fruitbar_menu_data');
-    const menuData = stored ? JSON.parse(stored) : defaultMenuData;
+    var menuData = defaultMenuData;
+    var catImages = defaultCatImages;
 
     function updateAboutStats() {
       var cats = Object.keys(menuData).length;
@@ -573,9 +573,8 @@
       document.getElementById('statCategories').textContent = cats;
       document.getElementById('statDrinks').textContent = drinks + '+';
     }
-    updateAboutStats();
 
-    const defaultCatImages = {
+    var defaultCatImages = {
       "International Cocktails": "images/international.jpg",
       "Whiskey": "images/whisky.jpg",
       "Vodka": "images/vodka.jpg",
@@ -587,8 +586,43 @@
       "Soft Drinks & Juices": "images/soft-drink.jpg",
       "Non-Alcoholic": "images/non-alcoholic.jpg"
     };
-    const storedImages = localStorage.getItem('fruitbar_cat_images');
-    const catImages = storedImages ? JSON.parse(storedImages) : defaultCatImages;
+
+    async function loadData() {
+      // Try GitHub first
+      try {
+        var res = await fetch('https://raw.githubusercontent.com/bhalmonop/FRUITBAR_LOUNGEBAR/main/data/menu.json');
+        if (res.ok) {
+          var remote = await res.json();
+          if (remote && typeof remote === 'object' && Object.keys(remote).length) {
+            menuData = remote;
+            localStorage.setItem('fruitbar_menu_data', JSON.stringify(remote));
+          }
+        }
+      } catch(e) { /* fall through */ }
+
+      // Fall back to localStorage cache
+      if (!menuData || !Object.keys(menuData).length) {
+        var stored = localStorage.getItem('fruitbar_menu_data');
+        if (stored) {
+          try { var parsed = JSON.parse(stored); if (parsed && Object.keys(parsed).length) menuData = parsed; }
+          catch(e) {}
+        }
+      }
+
+      // Fall back to defaults
+      if (!menuData || !Object.keys(menuData).length) {
+        menuData = defaultMenuData;
+      }
+
+      updateAboutStats();
+      renderCategoryGrid();
+    }
+
+    var storedImages = localStorage.getItem('fruitbar_cat_images');
+    if (storedImages) {
+      try { var parsed = JSON.parse(storedImages); if (parsed) catImages = parsed; }
+      catch(e) {}
+    }
 
     const grid = document.getElementById('categoryGrid');
     const itemsSection = document.getElementById('itemsSection');
@@ -596,21 +630,24 @@
     const itemsList = document.getElementById('itemsList');
     const closeBtn = document.getElementById('closeItems');
 
-    Object.keys(menuData).forEach(cat => {
-      const items = menuData[cat];
-      const img = catImages[cat] || '';
-      const card = document.createElement('div');
-      card.className = 'category-card';
-      card.dataset.anim = '';
-      if (img) card.style.backgroundImage = 'url(' + img + ')';
-      card.innerHTML = `
-        <h3>${cat}</h3>
-        <p>${items.length} selection${items.length > 1 ? 's' : ''}</p>
-        <span class="category-count">View Menu &rarr;</span>
-      `;
-      card.addEventListener('click', () => showCategory(cat));
-      grid.appendChild(card);
-    });
+    function renderCategoryGrid() {
+      grid.innerHTML = '';
+      Object.keys(menuData).forEach(cat => {
+        const items = menuData[cat];
+        const img = catImages[cat] || '';
+        const card = document.createElement('div');
+        card.className = 'category-card';
+        card.dataset.anim = '';
+        if (img) card.style.backgroundImage = 'url(' + img + ')';
+        card.innerHTML = `
+          <h3>${cat}</h3>
+          <p>${items.length} selection${items.length > 1 ? 's' : ''}</p>
+          <span class="category-count">View Menu &rarr;</span>
+        `;
+        card.addEventListener('click', () => showCategory(cat));
+        grid.appendChild(card);
+      });
+    }
 
     function showCategory(cat) {
       const items = menuData[cat];
@@ -655,6 +692,7 @@
       document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 60);
     });
 
+    loadData();
   </script>
   <script>
     (function() {
