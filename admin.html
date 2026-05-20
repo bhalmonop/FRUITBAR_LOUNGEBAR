@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FRUITBAR - Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --green: #00470c;
+      --green-light: #00a31c;
+      --green-dark: #002a06;
+      --bg: #0A0A0A;
+      --bg2: #111111;
+      --surface: rgba(255,255,255,0.04);
+      --surface-hover: rgba(255,255,255,0.08);
+      --text: #F0EDE8;
+      --text-muted: #8A8680;
+      --danger: #ef4444;
+      --radius: 12px;
+    }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    input, button, select { font-family: inherit; }
+
+    .login-screen {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 24px;
+    }
+    .login-card {
+      background: var(--bg2); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius); padding: 48px 40px;
+      width: 100%; max-width: 400px;
+    }
+    .login-card h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .login-card h1 em { font-style: normal; color: var(--green-light); }
+    .login-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
+    .login-card label { display: block; font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .login-card input {
+      width: 100%; padding: 12px 16px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1); background: var(--surface);
+      color: var(--text); font-size: 15px; outline: none;
+      transition: border-color 0.3s; margin-bottom: 20px;
+    }
+    .login-card input:focus { border-color: var(--green-light); }
+    .login-card .btn {
+      width: 100%; padding: 14px; border-radius: 8px; border: none;
+      background: linear-gradient(135deg, var(--green), var(--green-light));
+      color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.3s;
+    }
+    .login-card .btn:hover { opacity: 0.9; }
+    .login-error { color: var(--danger); font-size: 13px; margin-top: 12px; display: none; }
+
+    .dashboard { display: none; min-height: 100vh; }
+    .dash-header {
+      background: var(--bg2); border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 16px 32px; display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .dash-header h2 { font-size: 20px; font-weight: 600; }
+    .dash-header h2 em { font-style: normal; color: var(--green-light); }
+    .dash-header .user-info { display: flex; align-items: center; gap: 16px; }
+    .dash-header .user-info span { font-size: 13px; color: var(--text-muted); }
+    .dash-header .logout-btn {
+      padding: 8px 20px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
+      background: transparent; color: var(--text-muted); cursor: pointer;
+      font-size: 13px; transition: all 0.3s;
+    }
+    .dash-header .logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+    .dash-body { padding: 32px; max-width: 1100px; margin: 0 auto; }
+
+    .tab-bar {
+      display: flex; gap: 4px; margin-bottom: 28px;
+      background: var(--bg2); border-radius: var(--radius);
+      padding: 4px; border: 1px solid rgba(255,255,255,0.06);
+    }
+    .tab-btn {
+      flex: 1; padding: 12px; border-radius: 8px; border: none;
+      background: transparent; color: var(--text-muted); font-size: 14px;
+      font-weight: 500; cursor: pointer; transition: all 0.3s;
+    }
+    .tab-btn.active { background: var(--green); color: #fff; }
+    .tab-btn:hover:not(.active) { background: var(--surface); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .section-title {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+    }
+    .section-title h3 { font-size: 18px; font-weight: 600; }
+
+    .btn-sm {
+      padding: 8px 16px; border-radius: 6px; border: none; font-size: 13px;
+      font-weight: 500; cursor: pointer; transition: opacity 0.3s;
+    }
+    .btn-sm:hover { opacity: 0.85; }
+    .btn-green { background: var(--green-light); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--text); }
+
+    .cat-card, .item-card {
+      background: var(--bg2); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius); margin-bottom: 12px; overflow: hidden;
+    }
+    .cat-row, .item-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; gap: 12px;
+    }
+    .cat-info, .item-info { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+    .cat-thumb {
+      width: 48px; height: 48px; border-radius: 8px; object-fit: cover;
+      background: var(--surface); flex-shrink: 0;
+    }
+    .cat-info .cat-name { font-weight: 600; font-size: 15px; }
+    .cat-info .cat-meta { font-size: 12px; color: var(--text-muted); }
+    .item-info .item-name { font-weight: 500; font-size: 14px; }
+    .item-info .item-cat { font-size: 12px; color: var(--text-muted); }
+    .item-info .item-price { color: var(--green-light); font-weight: 600; font-size: 14px; margin-left: auto; }
+    .actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .slide-card {
+      background: var(--bg2); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius); margin-bottom: 12px; overflow: hidden;
+    }
+    .slide-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 20px; gap: 12px;
+    }
+    .slide-preview {
+      width: 80px; height: 60px; border-radius: 6px; object-fit: cover;
+      background: var(--surface); flex-shrink: 0;
+    }
+    .slide-info { flex: 1; font-size: 13px; color: var(--text-muted); min-width: 0; }
+
+    .empty-state { text-align: center; padding: 60px 24px; color: var(--text-muted); }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+    .empty-state p { font-size: 14px; }
+
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.7); align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg2); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius); padding: 32px; width: 100%; max-width: 480px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal h3 { font-size: 20px; margin-bottom: 20px; }
+    .modal label { display: block; font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .modal input, .modal select {
+      width: 100%; padding: 10px 14px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1); background: var(--surface);
+      font-size: 14px; outline: none;
+      transition: border-color 0.3s; margin-bottom: 16px;
+    }
+    .modal input { color: var(--text); }
+    .modal select { color: #111; }
+    .modal input:focus, .modal select:focus { border-color: var(--green-light); }
+    .modal .btn-row { display: flex; gap: 12px; margin-top: 8px; }
+    .modal .btn-row .btn-sm { flex: 1; text-align: center; padding: 12px; }
+
+    @media (max-width: 768px) {
+      .dash-body { padding: 16px; }
+      .dash-header { padding: 12px 16px; }
+      .cat-row, .item-row { flex-wrap: wrap; }
+      .cat-info, .item-info { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <h1><em>FRUIT</em>BAR</h1>
+      <p>Admin Dashboard</p>
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Enter username" autocomplete="off" />
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Enter password" />
+      <button class="btn" onclick="login()">Sign In</button>
+      <div class="login-error" id="loginError">Invalid credentials</div>
+    </div>
+  </div>
+
+  <div class="dashboard" id="dashboard">
+    <div class="dash-header">
+      <h2><em>FRUIT</em>BAR &mdash; Admin</h2>
+      <div class="user-info">
+        <span id="dashUser"></span>
+        <a href="index.html" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);color:#8A8680;text-decoration:none;font-size:13px;transition:all 0.3s" onmouseover="this.style.color='#00a31c'" onmouseout="this.style.color='#8A8680'">View Site</a>
+        <button class="logout-btn" onclick="logout()">Sign Out</button>
+      </div>
+    </div>
+    <div class="dash-body">
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tabCategories" onclick="switchTab('categories')">Categories</button>
+        <button class="tab-btn" id="tabItems" onclick="switchTab('items')">Items</button>
+        <button class="tab-btn" id="tabSlideshow" onclick="switchTab('slideshow')">Slideshow</button>
+      </div>
+      <div class="tab-content active" id="tabCategoriesContent">
+        <div class="section-title">
+          <h3>All Categories</h3>
+          <button class="btn-sm btn-green" onclick="openAddCat()">+ Add Category</button>
+        </div>
+        <div id="categoriesList"></div>
+      </div>
+      <div class="tab-content" id="tabItemsContent">
+        <div class="section-title">
+          <h3>All Items</h3>
+          <button class="btn-sm btn-green" onclick="openAddItem()">+ Add Item</button>
+        </div>
+        <div id="itemsList"></div>
+      </div>
+      <div class="tab-content" id="tabSlideshowContent">
+        <div class="section-title">
+          <h3>Slideshow Images</h3>
+          <button class="btn-sm btn-green" onclick="openAddSlide()">+ Add Image</button>
+        </div>
+        <div id="slideshowList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modalContent"></div>
+  </div>
+
+  <script>
+    const ADMIN_KEY = 'fruitbar_admin';
+    const DATA_KEY = 'fruitbar_menu_data';
+    const IMAGES_KEY = 'fruitbar_cat_images';
+    const SESSION_KEY = 'fruitbar_session';
+    const SLIDESHOW_KEY = 'fruitbar_slideshow';
+    const TOKEN_DURATION = 30 * 60 * 1000; // 30 minutes
+
+    const defaultCreds = { username: 'admin', password: 'admin123' };
+    const defaultMenu = {
+      "International Cocktails": [
+        { name: "Amaretto Sour", price: 10 }, { name: "Bullfrog", price: 12 },
+        { name: "Cuba Libre", price: 8 }, { name: "Blue Hawai", price: 8 },
+        { name: "Dry Martini", price: 10 }, { name: "Gin Basil", price: 8 },
+        { name: "Gin Tonic", price: 8 }, { name: "Godfather", price: 10 },
+        { name: "Jamaica", price: 8 }, { name: "Long Island", price: 12 },
+        { name: "Margarita", price: 10 }, { name: "Midori Sour", price: 10 },
+        { name: "Mojito", price: 8 }, { name: "B52", price: 10 },
+        { name: "Take Me Home", price: 10 }, { name: "Jagermeister Heaven", price: 10 },
+        { name: "Sex on the beach", price: 10 }, { name: "Tequila sunrise", price: 8 },
+        { name: "PassionFruit Martini", price: 12 }, { name: "Espresso Martini", price: 12 },
+        { name: "Jagerbomb", price: 7 }, { name: "Jack knife", price: 8 },
+        { name: "Baileys liquor", price: 10 }, { name: "Irish cream cocktail", price: 12 },
+        { name: "Old Fashioned", price: 12 }, { name: "Negroni", price: 12 },
+        { name: "Manhattan", price: 12 }, { name: "Aperol Spritz", price: 10 }
+      ],
+      "Whiskey": [
+        { name: "Old Parr", price: 12 }, { name: "Johnnie Walker Red Label", price: 10 },
+        { name: "Johnnie Walker Black Label", price: 12 }, { name: "Jameson", price: 8 },
+        { name: "J&B Rare", price: 8 }, { name: "Jack Daniel's", price: 8 },
+        { name: "Chivas 18 Y", price: 15 }, { name: "Jim Beam", price: 8 }
+      ],
+      "Vodka": [
+        { name: "Stolichnaya", price: 8 }, { name: "Poliakov", price: 8 },
+        { name: "Smirnoff Black", price: 10 }, { name: "Grey Goose", price: 12 },
+        { name: "Belvedere", price: 15 }
+      ],
+      "Gin & Rum": [
+        { name: "Gordon's", price: 8 }, { name: "Hendrick's", price: 15 },
+        { name: "Hendrick's Neptunia", price: 15 }, { name: "Tanqueray", price: 12 },
+        { name: "Gibson's pink", price: 10 }, { name: "Saint James White", price: 12 },
+        { name: "Saint James Spiced", price: 12 }, { name: "Captain morgan white", price: 10 },
+        { name: "Captain morgan spiced", price: 12 }, { name: "Bacardi", price: 12 }
+      ],
+      "Wine": [
+        { name: "Red (By The Bottle)", price: 30, desc: "Chateau Kefraya / KSARA" },
+        { name: "White (By The bottle)", price: 30, desc: "Chateau Kefraya" },
+        { name: "Rose (By The bottle)", price: 30, desc: "KSARA Sunset" },
+        { name: "Prosecco", price: 30 }
+      ],
+      "Beer": [
+        { name: "Almaza", price: 4 }, { name: "Almaza Light", price: 4 },
+        { name: "Almaza Dark", price: 5 }, { name: "Almaza Rose", price: 4 },
+        { name: "Almaza Unfiltered", price: 5 }, { name: "Mexican Beer", price: 6 }
+      ],
+      "Shots": [
+        { name: "Tequila Silver", price: 4 }, { name: "Tequila Gold", price: 4 },
+        { name: "Brain Damage", price: 7 }, { name: "Doudou", price: 5 },
+        { name: "Jagermeister", price: 5 }, { name: "Absinthe Red", price: 8 },
+        { name: "Cocktail shot", price: 3 }, { name: "Sambuca", price: 5 },
+        { name: "B-52", price: 8 }
+      ],
+      "Bottles": [
+        { name: "Gin Basil Pitcher 0.5 L", price: 25 }, { name: "Gin Basil Pitcher 1 L", price: 40 },
+        { name: "Margarita Pitcher 0.5 L", price: 25 }, { name: "Margarita Pitcher 1 L", price: 40 },
+        { name: "Sangria Pitcher 0.5 L", price: 35 }, { name: "Sangria Pitcher 1 L", price: 60 },
+        { name: "Stolichnaya", price: 35 }, { name: "Poliakov", price: 40 },
+        { name: "Belvedere", price: 150 }, { name: "Grey Goose", price: 120 },
+        { name: "Gordon's", price: 35 }, { name: "Tanqueray", price: 70 },
+        { name: "Hendricks", price: 90 }, { name: "Jose Cuervo Silver", price: 40 },
+        { name: "Camino Gold", price: 45 }, { name: "Old Parr", price: 80 },
+        { name: "Johnnie Walker Red Label", price: 45 }, { name: "Johnnie Walker Black Label", price: 80 },
+        { name: "Jameson", price: 45 }
+      ],
+      "Soft Drinks & Juices": [
+        { name: "Water", price: 1 }, { name: "Juice", price: 3 },
+        { name: "Energy drink", price: 3 }, { name: "Soft drink", price: 3 },
+        { name: "Juice Pitcher", price: 5 }, { name: "Energy Drink Pitcher", price: 5 }
+      ],
+      "Non-Alcoholic": [
+        { name: "Lemonade", price: 5 }, { name: "Minted Lemonade", price: 5 },
+        { name: "Jamaica", price: 5 }, { name: "Mojito", price: 5 }
+      ]
+    };
+    const defaultImages = {
+      "International Cocktails": "images/international.jpg",
+      "Whiskey": "images/whisky.jpg",
+      "Vodka": "images/vodka.jpg",
+      "Gin & Rum": "images/gin&rum.jpg",
+      "Wine": "images/win.jpg",
+      "Beer": "images/beer.jpg",
+      "Shots": "images/shots.jpg",
+      "Bottles": "images/bottles.jpg",
+      "Soft Drinks & Juices": "images/soft-drink.jpg",
+      "Non-Alcoholic": "images/non-alcoholic.jpg"
+    };
+
+    function getToken() {
+      try {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) return null;
+        const token = JSON.parse(raw);
+        if (!token || !token.username || !token.expiresAt) return null;
+        return token;
+      } catch {
+        return null;
+      }
+    }
+
+    function isTokenExpired(token) {
+      return Date.now() >= token.expiresAt;
+    }
+
+    function clearSession() {
+      localStorage.removeItem(SESSION_KEY);
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('loginError').style.display = 'none';
+      document.getElementById('loginUser').value = '';
+      document.getElementById('loginPass').value = '';
+    }
+
+    function init() {
+      if (!localStorage.getItem(ADMIN_KEY)) {
+        localStorage.setItem(ADMIN_KEY, JSON.stringify(defaultCreds));
+      }
+      if (!localStorage.getItem(DATA_KEY)) {
+        localStorage.setItem(DATA_KEY, JSON.stringify(defaultMenu));
+      }
+      if (!localStorage.getItem(IMAGES_KEY)) {
+        localStorage.setItem(IMAGES_KEY, JSON.stringify(defaultImages));
+      }
+      const token = getToken();
+      if (token && isTokenExpired(token)) {
+        clearSession();
+        showSessionExpired();
+        return;
+      }
+      if (token) {
+        showDash(token.username);
+      }
+    }
+
+    function login() {
+      const user = document.getElementById('loginUser').value.trim();
+      const pass = document.getElementById('loginPass').value;
+      const creds = JSON.parse(localStorage.getItem(ADMIN_KEY));
+      if (user === creds.username && pass === creds.password) {
+        const token = { username: user, expiresAt: Date.now() + TOKEN_DURATION };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(token));
+        showDash(user);
+      } else {
+        const errorEl = document.getElementById('loginError');
+        errorEl.textContent = 'Invalid credentials';
+        errorEl.style.display = 'block';
+      }
+    }
+
+    function logout() {
+      clearSession();
+    }
+
+    function showSessionExpired() {
+      const errorEl = document.getElementById('loginError');
+      errorEl.textContent = 'Session expired. Please sign in again.';
+      errorEl.style.display = 'block';
+    }
+
+    function ensureSession() {
+      const token = getToken();
+      if (!token || isTokenExpired(token)) {
+        clearSession();
+        showSessionExpired();
+        return false;
+      }
+      return true;
+    }
+
+    function startSessionMonitor() {
+      setInterval(function() {
+        const token = getToken();
+        if (token && isTokenExpired(token)) {
+          clearSession();
+          showSessionExpired();
+        }
+      }, 10000);
+    }
+
+    function showDash(user) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      document.getElementById('dashUser').textContent = user;
+      renderCategories();
+      renderItems();
+      renderSlideshow();
+      startSessionMonitor();
+    }
+
+    function getMenu() {
+      return JSON.parse(localStorage.getItem(DATA_KEY)) || {};
+    }
+    function saveMenu(data) {
+      localStorage.setItem(DATA_KEY, JSON.stringify(data));
+      renderCategories();
+      renderItems();
+    }
+    function getImages() {
+      return JSON.parse(localStorage.getItem(IMAGES_KEY)) || {};
+    }
+    function saveImages(data) {
+      localStorage.setItem(IMAGES_KEY, JSON.stringify(data));
+      renderCategories();
+    }
+
+    function getSlides() {
+      return JSON.parse(localStorage.getItem(SLIDESHOW_KEY)) || [];
+    }
+    function saveSlides(data) {
+      localStorage.setItem(SLIDESHOW_KEY, JSON.stringify(data));
+      renderSlideshow();
+    }
+
+    function renderSlideshow() {
+      const slides = getSlides();
+      const container = document.getElementById('slideshowList');
+      if (!slides.length) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">&#128247;</div><p>No slideshow images yet.</p></div>';
+        return;
+      }
+      container.innerHTML = slides.map(function(slide, idx) {
+        const label = slide.name || 'Image ' + (idx + 1);
+        return '<div class="slide-card">' +
+          '<div class="slide-row">' +
+            '<img class="slide-preview" src="' + slide.src + '" alt="' + label + '" />' +
+            '<div class="slide-info">' + label + '</div>' +
+            '<div class="actions">' +
+              '<button class="btn-sm btn-danger" onclick="removeSlide(' + idx + ')">Delete</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function openAddSlide() {
+      document.getElementById('modalContent').innerHTML =
+        '<h3>Add Slideshow Image</h3>' +
+        '<label>Upload Image</label>' +
+        '<input type="file" id="newSlideFile" accept="image/*" />' +
+        '<div style="margin-bottom:16px;font-size:12px;color:var(--text-muted)">Images are stored in the browser. Maximum size recommended: 2MB per image.</div>' +
+        '<label>Or paste image URL</label>' +
+        '<input type="text" id="newSlideUrl" placeholder="https://example.com/image.jpg" />' +
+        '<div class="btn-row">' +
+          '<button class="btn-sm btn-green" onclick="addSlide()">Save</button>' +
+          '<button class="btn-sm btn-outline" onclick="closeModal()">Cancel</button>' +
+        '</div>';
+      document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function addSlide() {
+      const fileInput = document.getElementById('newSlideFile');
+      const urlInput = document.getElementById('newSlideUrl');
+      const file = fileInput.files && fileInput.files[0];
+      const url = urlInput.value.trim();
+
+      if (!file && !url) return;
+
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const slides = getSlides();
+          slides.push({ src: e.target.result, name: file.name });
+          saveSlides(slides);
+          closeModal();
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const slides = getSlides();
+        slides.push({ src: url, name: url.split('/').pop() || 'Image ' + (slides.length + 1) });
+        saveSlides(slides);
+        closeModal();
+      }
+    }
+
+    function removeSlide(idx) {
+      if (!ensureSession()) return;
+      if (!confirm('Remove this image from slideshow?')) return;
+      const slides = getSlides();
+      slides.splice(idx, 1);
+      saveSlides(slides);
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      if (tab === 'categories') {
+        document.getElementById('tabCategories').classList.add('active');
+        document.getElementById('tabCategoriesContent').classList.add('active');
+        renderCategories();
+      } else if (tab === 'items') {
+        document.getElementById('tabItems').classList.add('active');
+        document.getElementById('tabItemsContent').classList.add('active');
+        renderItems();
+      } else {
+        document.getElementById('tabSlideshow').classList.add('active');
+        document.getElementById('tabSlideshowContent').classList.add('active');
+        renderSlideshow();
+      }
+    }
+
+    function renderCategories() {
+      const data = getMenu();
+      const images = getImages();
+      const container = document.getElementById('categoriesList');
+      const keys = Object.keys(data);
+      if (!keys.length) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">&#128193;</div><p>No categories yet.</p></div>';
+        return;
+      }
+      container.innerHTML = keys.map(cat => {
+        const img = images[cat] || '';
+        return `
+          <div class="cat-card">
+            <div class="cat-row">
+              <div class="cat-info">
+                ${img ? `<img class="cat-thumb" src="${img}" alt="" onerror="this.style.display='none'" />` : `<div class="cat-thumb"></div>`}
+                <div>
+                  <div class="cat-name">${cat}</div>
+                  <div class="cat-meta">${data[cat].length} item${data[cat].length !== 1 ? 's' : ''}</div>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn-sm btn-outline" onclick="openEditCat('${cat.replace(/'/g, "\\'")}')">Edit</button>
+                <button class="btn-sm btn-danger" onclick="removeCat('${cat.replace(/'/g, "\\'")}')">Delete</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderItems() {
+      const data = getMenu();
+      const container = document.getElementById('itemsList');
+      const allItems = [];
+      Object.keys(data).forEach(cat => {
+        data[cat].forEach((item, idx) => {
+          allItems.push({ ...item, cat, idx });
+        });
+      });
+      if (!allItems.length) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">&#127869;</div><p>No items yet.</p></div>';
+        return;
+      }
+      container.innerHTML = allItems.map(item => `
+        <div class="item-card">
+          <div class="item-row">
+            <div class="item-info">
+              <div>
+                <div class="item-name">${item.name}</div>
+                <div class="item-cat">${item.cat}</div>
+              </div>
+              <span class="item-price">$${item.price}</span>
+            </div>
+            <div class="actions">
+              <button class="btn-sm btn-outline" onclick="openEditItem('${item.cat.replace(/'/g, "\\'")}', ${item.idx})">Edit</button>
+              <button class="btn-sm btn-danger" onclick="removeItem('${item.cat.replace(/'/g, "\\'")}', ${item.idx})">Delete</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function removeCat(cat) {
+      if (!ensureSession()) return;
+      if (!confirm('Delete "' + cat + '" and all its items?')) return;
+      const data = getMenu();
+      const images = getImages();
+      delete data[cat];
+      delete images[cat];
+      saveMenu(data);
+      saveImages(images);
+    }
+
+    function removeItem(cat, idx) {
+      if (!ensureSession()) return;
+      if (!confirm('Delete this item?')) return;
+      const data = getMenu();
+      data[cat].splice(idx, 1);
+      if (!data[cat].length) delete data[cat];
+      saveMenu(data);
+    }
+
+    function openAddCat() {
+      const overlay = document.getElementById('modalOverlay');
+      document.getElementById('modalContent').innerHTML = `
+        <h3>Add Category</h3>
+        <label>Category Name</label>
+        <input type="text" id="newCatName" placeholder="e.g. Champagne" />
+        <label>Background Image URL (optional)</label>
+        <input type="text" id="newCatImg" placeholder="e.g. images/champagne.jpg" />
+        <div style="margin-bottom:16px;font-size:12px;color:var(--text-muted)">Leave empty to use a default dark card.</div>
+        <div class="btn-row">
+          <button class="btn-sm btn-green" onclick="addCat()">Save</button>
+          <button class="btn-sm btn-outline" onclick="closeModal()">Cancel</button>
+        </div>
+      `;
+      overlay.classList.add('open');
+      setTimeout(() => document.getElementById('newCatName').focus(), 100);
+    }
+
+    function addCat() {
+      if (!ensureSession()) return;
+      const name = document.getElementById('newCatName').value.trim();
+      const img = document.getElementById('newCatImg').value.trim();
+      if (!name) return;
+      const data = getMenu();
+      const images = getImages();
+      if (data[name]) { alert('Category already exists'); return; }
+      data[name] = [];
+      if (img) images[name] = img;
+      saveMenu(data);
+      saveImages(images);
+      closeModal();
+    }
+
+    function openEditCat(cat) {
+      const images = getImages();
+      const currentImg = images[cat] || '';
+      const overlay = document.getElementById('modalOverlay');
+      document.getElementById('modalContent').innerHTML = `
+        <h3>Edit Category</h3>
+        <label>Category Name</label>
+        <input type="text" id="editCatName" value="${cat.replace(/"/g, '&quot;')}" />
+        <label>Background Image URL</label>
+        <input type="text" id="editCatImg" value="${currentImg.replace(/"/g, '&quot;')}" placeholder="e.g. images/champagne.jpg" />
+        <div style="margin-bottom:16px;font-size:12px;color:var(--text-muted)">Leave empty for a default dark card.</div>
+        <div class="btn-row">
+          <button class="btn-sm btn-green" onclick="saveEditCat('${cat.replace(/'/g, "\\'")}')">Save</button>
+          <button class="btn-sm btn-outline" onclick="closeModal()">Cancel</button>
+        </div>
+      `;
+      overlay.classList.add('open');
+    }
+
+    function saveEditCat(oldName) {
+      if (!ensureSession()) return;
+      const newName = document.getElementById('editCatName').value.trim();
+      const img = document.getElementById('editCatImg').value.trim();
+      if (!newName) return;
+      const data = getMenu();
+      const images = getImages();
+      if (newName !== oldName) {
+        if (data[newName]) { alert('Category "' + newName + '" already exists'); return; }
+        data[newName] = data[oldName];
+        if (images[oldName]) images[newName] = images[oldName];
+        delete data[oldName];
+        delete images[oldName];
+      }
+      if (img) images[newName] = img;
+      else delete images[newName];
+      saveMenu(data);
+      saveImages(images);
+      closeModal();
+    }
+
+    function openAddItem(preSelectedCat) {
+      const data = getMenu();
+      const cats = Object.keys(data);
+      const overlay = document.getElementById('modalOverlay');
+      const catOptions = cats.map(c => `<option value="${c.replace(/"/g, '&quot;')}"${preSelectedCat && c === preSelectedCat ? ' selected' : ''}>${c}</option>`).join('');
+      document.getElementById('modalContent').innerHTML = `
+        <h3>Add Item</h3>
+        <label>Category</label>
+        <select id="newItemCat">${catOptions}</select>
+        <label>Item Name</label>
+        <input type="text" id="newItemName" placeholder="e.g. Mojito" />
+        <label>Price (USD)</label>
+        <input type="number" id="newItemPrice" placeholder="10" min="0" step="0.5" />
+        <label>Description (optional)</label>
+        <input type="text" id="newItemDesc" placeholder="e.g. By the glass" />
+        <div class="btn-row">
+          <button class="btn-sm btn-green" onclick="addItem()">Save</button>
+          <button class="btn-sm btn-outline" onclick="closeModal()">Cancel</button>
+        </div>
+      `;
+      overlay.classList.add('open');
+      setTimeout(() => document.getElementById('newItemName').focus(), 100);
+    }
+
+    function addItem() {
+      if (!ensureSession()) return;
+      const cat = document.getElementById('newItemCat').value;
+      const name = document.getElementById('newItemName').value.trim();
+      const price = parseFloat(document.getElementById('newItemPrice').value);
+      const desc = document.getElementById('newItemDesc').value.trim();
+      if (!name || isNaN(price) || !cat) return;
+      const data = getMenu();
+      const item = { name, price };
+      if (desc) item.desc = desc;
+      data[cat].push(item);
+      saveMenu(data);
+      closeModal();
+    }
+
+    function openEditItem(cat, idx) {
+      const data = getMenu();
+      const item = data[cat][idx];
+      const cats = Object.keys(data);
+      const catOptions = cats.map(c => `<option value="${c.replace(/"/g, '&quot;')}"${c === cat ? ' selected' : ''}>${c}</option>`).join('');
+      const overlay = document.getElementById('modalOverlay');
+      document.getElementById('modalContent').innerHTML = `
+        <h3>Edit Item</h3>
+        <label>Category</label>
+        <select id="editItemCat">${catOptions}</select>
+        <label>Item Name</label>
+        <input type="text" id="editItemName" value="${item.name.replace(/"/g, '&quot;')}" />
+        <label>Price (USD)</label>
+        <input type="number" id="editItemPrice" value="${item.price}" min="0" step="0.5" />
+        <label>Description (optional)</label>
+        <input type="text" id="editItemDesc" value="${(item.desc || '').replace(/"/g, '&quot;')}" />
+        <div class="btn-row">
+          <button class="btn-sm btn-green" onclick="saveEditItem('${cat.replace(/'/g, "\\'")}', ${idx})">Save</button>
+          <button class="btn-sm btn-outline" onclick="closeModal()">Cancel</button>
+        </div>
+      `;
+      overlay.classList.add('open');
+    }
+
+    function saveEditItem(oldCat, idx) {
+      if (!ensureSession()) return;
+      const newCat = document.getElementById('editItemCat').value;
+      const name = document.getElementById('editItemName').value.trim();
+      const price = parseFloat(document.getElementById('editItemPrice').value);
+      const desc = document.getElementById('editItemDesc').value.trim();
+      if (!name || isNaN(price) || !newCat) return;
+      const data = getMenu();
+      if (newCat === oldCat) {
+        data[oldCat][idx] = { name, price };
+        if (desc) data[oldCat][idx].desc = desc;
+      } else {
+        data[oldCat].splice(idx, 1);
+        if (!data[oldCat].length) delete data[oldCat];
+        const item = { name, price };
+        if (desc) item.desc = desc;
+        data[newCat].push(item);
+      }
+      saveMenu(data);
+      closeModal();
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('open');
+    }
+
+    document.getElementById('modalOverlay').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        if (document.getElementById('loginScreen').style.display !== 'none') login();
+      }
+      if (e.key === 'Escape') closeModal();
+    });
+
+    init();
+  </script>
+</body>
+</html>
