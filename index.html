@@ -385,9 +385,9 @@
         <p>FruitBar Lounge & Bar is your destination for handcrafted cocktails, premium spirits, and an atmosphere that blends sophistication with comfort.</p>
         <p>From international classics to signature creations, our bartenders bring artistry to every glass. Whether you're celebrating or winding down, FruitBar is where moments become memories.</p>
         <div class="about-stats">
-          <div class="stat"><h4>95+</h4><p>Drinks</p></div>
-          <div class="stat"><h4>10</h4><p>Categories</p></div>
-          <div class="stat"><h4>1</h4><p>Location</p></div>
+          <div class="stat"><h4 id="statDrinks">95+</h4><p>Drinks</p></div>
+          <div class="stat"><h4 id="statCategories">10</h4><p>Categories</p></div>
+          <div class="stat"><h4 id="statLocation">1</h4><p>Location</p></div>
         </div>
       </div>
     </div>
@@ -565,6 +565,15 @@
     };
     const stored = localStorage.getItem('fruitbar_menu_data');
     const menuData = stored ? JSON.parse(stored) : defaultMenuData;
+
+    function updateAboutStats() {
+      var cats = Object.keys(menuData).length;
+      var drinks = 0;
+      Object.keys(menuData).forEach(function(c) { drinks += menuData[c].length; });
+      document.getElementById('statCategories').textContent = cats;
+      document.getElementById('statDrinks').textContent = drinks + '+';
+    }
+    updateAboutStats();
 
     const defaultCatImages = {
       "International Cocktails": "images/international.jpg",
