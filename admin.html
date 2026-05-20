@@ -287,7 +287,7 @@
       var slides = JSON.parse(localStorage.getItem(SLIDESHOW_KEY));
 
       var headers = {
-        'Authorization': 'token ' + config.token,
+        'Authorization': 'Bearer ' + config.token,
         'Content-Type': 'application/json'
       };
       var baseUrl = 'https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO + '/contents/data/';
@@ -305,6 +305,16 @@
           if (getRes.ok) {
             var existing = await getRes.json();
             sha = existing.sha;
+          } else if (getRes.status !== 404) {
+            var errText = await getRes.text();
+            console.error('GitHub check failed for ' + f.path + ':', errText);
+            try {
+              var errJson = JSON.parse(errText);
+              setSyncStatus('Error: ' + (errJson.message || errText), false);
+            } catch(e) {
+              setSyncStatus('HTTP ' + getRes.status, false);
+            }
+            return;
           }
 
           var content = base64Encode(JSON.stringify(f.data, null, 2));
@@ -318,12 +328,17 @@
           if (!putRes.ok) {
             var errText = await putRes.text();
             console.error('GitHub sync failed for ' + f.path + ':', errText);
-            setSyncStatus('Sync failed', false);
+            try {
+              var errJson = JSON.parse(errText);
+              setSyncStatus('Error: ' + (errJson.message || errText), false);
+            } catch(e) {
+              setSyncStatus('HTTP ' + putRes.status, false);
+            }
             return;
           }
         } catch(e) {
           console.error('GitHub sync error:', e);
-          setSyncStatus('Sync error', false);
+          setSyncStatus('Error: ' + e.message, false);
           return;
         }
       }
@@ -345,7 +360,7 @@
         '<label>GitHub Token</label>' +
         '<input type="password" id="ghToken" value="' + currentToken + '" placeholder="ghp_..." />' +
         '<div style="margin-bottom:16px;font-size:12px;color:var(--text-muted)">' +
-          'Token needs <strong>repo</strong> scope. ' +
+          'Use a <strong>fine-grained PAT</strong> with <strong>Contents (Read &amp; write)</strong> permission for this repo. ' +
           'Auto-syncs menu &amp; slideshow on every save.' +
         '</div>' +
         '<div class="btn-row">' +
