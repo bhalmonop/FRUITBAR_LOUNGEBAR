@@ -564,16 +564,6 @@
       ]
     };
     var menuData = defaultMenuData;
-    var catImages = defaultCatImages;
-
-    function updateAboutStats() {
-      var cats = Object.keys(menuData).length;
-      var drinks = 0;
-      Object.keys(menuData).forEach(function(c) { drinks += menuData[c].length; });
-      document.getElementById('statCategories').textContent = cats;
-      document.getElementById('statDrinks').textContent = drinks + '+';
-    }
-
     var defaultCatImages = {
       "International Cocktails": "images/international.jpg",
       "Whiskey": "images/whisky.jpg",
@@ -586,6 +576,15 @@
       "Soft Drinks & Juices": "images/soft-drink.jpg",
       "Non-Alcoholic": "images/non-alcoholic.jpg"
     };
+    var catImages = defaultCatImages;
+
+    function updateAboutStats() {
+      var cats = Object.keys(menuData).length;
+      var drinks = 0;
+      Object.keys(menuData).forEach(function(c) { drinks += menuData[c].length; });
+      document.getElementById('statCategories').textContent = cats;
+      document.getElementById('statDrinks').textContent = drinks + '+';
+    }
 
     async function loadData() {
       // Try GitHub first
