@@ -339,6 +339,8 @@
       opacity: 1; transform: translateY(0);
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <div id="ambient-bg"></div>
@@ -578,6 +580,23 @@
     };
     var catImages = defaultCatImages;
 
+    // 🔥 Set up Firebase - paste your web app config below
+    // Get it from: Firebase Console > Project Settings > General > Your apps
+    var firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    var fdb = null;
+    if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+      firebase.initializeApp(firebaseConfig);
+      fdb = firebase.firestore();
+    }
+
     function updateAboutStats() {
       var cats = Object.keys(menuData).length;
       var drinks = 0;
@@ -587,17 +606,27 @@
     }
 
     async function loadData() {
-      // Try GitHub first
-      try {
-        var res = await fetch('https://raw.githubusercontent.com/bhalmonop/FRUITBAR_LOUNGEBAR/main/data/menu.json');
-        if (res.ok) {
-          var remote = await res.json();
-          if (remote && typeof remote === 'object' && Object.keys(remote).length) {
-            menuData = remote;
-            localStorage.setItem('fruitbar_menu_data', JSON.stringify(remote));
+      // Try Firebase first
+      if (fdb) {
+        try {
+          var doc = await fdb.collection('fruitbar').doc('data').get();
+          if (doc.exists) {
+            var data = doc.data();
+            if (data.menu && typeof data.menu === 'object' && Object.keys(data.menu).length) {
+              menuData = data.menu;
+              localStorage.setItem('fruitbar_menu_data', JSON.stringify(data.menu));
+            }
+            if (data.images) {
+              catImages = data.images;
+              localStorage.setItem('fruitbar_cat_images', JSON.stringify(data.images));
+            }
+            if (data.slides) {
+              localStorage.setItem('fruitbar_slideshow', JSON.stringify(data.slides));
+            }
+            initSlideshow();
           }
-        }
-      } catch(e) { /* fall through */ }
+        } catch(e) { /* fall through */ }
+      }
 
       // Fall back to localStorage cache
       if (!menuData || !Object.keys(menuData).length) {

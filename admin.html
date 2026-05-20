@@ -179,6 +179,9 @@
       .cat-info, .item-info { flex-wrap: wrap; }
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
 </head>
 <body>
   <div class="login-screen" id="loginScreen">
@@ -202,7 +205,7 @@
           <span id="dashUser"></span>
           <a href="index.html" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);color:#8A8680;text-decoration:none;font-size:13px;transition:all 0.3s" onmouseover="this.style.color='#00a31c'" onmouseout="this.style.color='#8A8680'">View Site</a>
           <button class="logout-btn" onclick="logout()" style="border-color:rgba(255,255,255,0.1)">Sign Out</button>
-          <button class="logout-btn" onclick="openGitHubSettings()" style="border-color:rgba(255,255,255,0.1)">Settings</button>
+          <button class="logout-btn" onclick="openFirebaseSettings()" style="border-color:rgba(255,255,255,0.1)">Settings</button>
         </div>
       </div>
     <div class="dash-body">
@@ -245,22 +248,19 @@
     const IMAGES_KEY = 'fruitbar_cat_images';
     const SESSION_KEY = 'fruitbar_session';
     const SLIDESHOW_KEY = 'fruitbar_slideshow';
-    const GH_CONFIG_KEY = 'fruitbar_gh_config';
     const TOKEN_DURATION = 30 * 60 * 1000; // 30 minutes
 
-    const GH_OWNER = 'bhalmonop';
-    const GH_REPO = 'FRUITBAR_LOUNGEBAR';
-    const GH_BRANCH = 'main';
-
     var syncStatusEl = null;
+    var fbApp = null;
+    var fbDb = null;
 
-    function getGhConfig() {
-      try { return JSON.parse(localStorage.getItem(GH_CONFIG_KEY)); }
+    function getFbConfig() {
+      try { return JSON.parse(localStorage.getItem('fruitbar_fb_config')); }
       catch(e) { return null; }
     }
 
-    function saveGhConfig(config) {
-      localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(config));
+    function saveFbConfig(config) {
+      localStorage.setItem('fruitbar_fb_config', JSON.stringify(config));
     }
 
     function setSyncStatus(text, ok) {
@@ -270,116 +270,100 @@
       syncStatusEl.style.color = ok ? 'var(--green-light)' : 'var(--danger)';
     }
 
-    function base64Encode(str) {
-      var encoded = btoa(unescape(encodeURIComponent(str)));
-      return encoded;
+    function getFirebaseDb() {
+      if (fbDb) return fbDb;
+      var config = getFbConfig();
+      if (!config) return null;
+      try {
+        if (!fbApp) {
+          fbApp = firebase.initializeApp(config);
+          firebase.auth().signInAnonymously().catch(function(e) {
+            console.error('Firebase auth error:', e);
+          });
+        }
+        fbDb = firebase.firestore();
+        return fbDb;
+      } catch(e) {
+        console.error('Firebase init error:', e);
+        return null;
+      }
     }
 
-    async function syncToGitHub() {
-      var config = getGhConfig();
-      if (!config || !config.token) {
-        setSyncStatus('GitHub not configured', false);
+    async function syncToFirebase() {
+      var config = getFbConfig();
+      if (!config) {
+        setSyncStatus('Firebase not configured', false);
         return;
       }
       setSyncStatus('Syncing...', true);
 
-      var menu = JSON.parse(localStorage.getItem(DATA_KEY));
-      var slides = JSON.parse(localStorage.getItem(SLIDESHOW_KEY));
-
-      var headers = {
-        'Authorization': 'Bearer ' + config.token,
-        'Content-Type': 'application/json'
-      };
-      var baseUrl = 'https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO + '/contents/data/';
-
-      var files = [
-        { path: 'menu.json', data: menu, msg: 'Update menu data' },
-        { path: 'slideshow.json', data: slides, msg: 'Update slideshow data' }
-      ];
-
-      for (var i = 0; i < files.length; i++) {
-        var f = files[i];
-        try {
-          var getRes = await fetch(baseUrl + f.path, { headers: headers });
-          var sha = null;
-          if (getRes.ok) {
-            var existing = await getRes.json();
-            sha = existing.sha;
-          } else if (getRes.status !== 404) {
-            var errText = await getRes.text();
-            console.error('GitHub check failed for ' + f.path + ':', errText);
-            try {
-              var errJson = JSON.parse(errText);
-              setSyncStatus('Error: ' + (errJson.message || errText), false);
-            } catch(e) {
-              setSyncStatus('HTTP ' + getRes.status, false);
-            }
-            return;
-          }
-
-          var content = base64Encode(JSON.stringify(f.data, null, 2));
-          var body = { message: f.msg, content: content, branch: GH_BRANCH };
-          if (sha) body.sha = sha;
-
-          var putRes = await fetch(baseUrl + f.path, {
-            method: 'PUT', headers: headers, body: JSON.stringify(body)
-          });
-
-          if (!putRes.ok) {
-            var errText = await putRes.text();
-            console.error('GitHub sync failed for ' + f.path + ':', errText);
-            try {
-              var errJson = JSON.parse(errText);
-              setSyncStatus('Error: ' + (errJson.message || errText), false);
-            } catch(e) {
-              setSyncStatus('HTTP ' + putRes.status, false);
-            }
-            return;
-          }
-        } catch(e) {
-          console.error('GitHub sync error:', e);
-          setSyncStatus('Error: ' + e.message, false);
+      try {
+        var db = getFirebaseDb();
+        if (!db) {
+          setSyncStatus('Firebase init failed', false);
           return;
         }
+
+        var menu = JSON.parse(localStorage.getItem(DATA_KEY));
+        var slides = JSON.parse(localStorage.getItem(SLIDESHOW_KEY));
+        var images = JSON.parse(localStorage.getItem(IMAGES_KEY));
+
+        await db.collection('fruitbar').doc('data').set({
+          menu: menu,
+          slides: slides,
+          images: images,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        setSyncStatus('Synced', true);
+        setTimeout(function() { setSyncStatus('', true); }, 3000);
+      } catch(e) {
+        console.error('Firebase sync error:', e);
+        setSyncStatus('Error: ' + e.message, false);
       }
-
-      setSyncStatus('Synced', true);
-      setTimeout(function() { setSyncStatus('', true); }, 3000);
     }
 
-    function setupGitHub(token) {
-      saveGhConfig({ token: token });
-      setSyncStatus('Config saved', true);
-    }
-
-    function openGitHubSettings() {
-      var config = getGhConfig();
-      var currentToken = config ? config.token : '';
+    function openFirebaseSettings() {
+      var config = getFbConfig();
+      var configJson = config ? JSON.stringify(config, null, 2) : '';
       document.getElementById('modalContent').innerHTML =
-        '<h3>GitHub Sync Settings</h3>' +
-        '<label>GitHub Token</label>' +
-        '<input type="password" id="ghToken" value="' + currentToken + '" placeholder="ghp_..." />' +
+        '<h3>Firebase Sync Settings</h3>' +
+        '<label>Firebase Config (JSON)</label>' +
+        '<textarea id="fbConfigJson" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:var(--surface);color:var(--text);font-size:13px;font-family:monospace;outline:none;margin-bottom:16px;resize:vertical;min-height:180px">' + configJson.replace(/</g, '&lt;') + '</textarea>' +
         '<div style="margin-bottom:16px;font-size:12px;color:var(--text-muted)">' +
-          'Use a <strong>fine-grained PAT</strong> with <strong>Contents (Read &amp; write)</strong> permission for this repo. ' +
-          'Auto-syncs menu &amp; slideshow on every save.' +
+          'Paste your Firebase web app config from ' +
+          '<strong>Project Settings &gt; General &gt; Your apps</strong>. ' +
+          'Need a <a href="https://console.firebase.google.com/" target="_blank" style="color:var(--green-light)">Firebase project</a> ' +
+          'with <strong>Firestore</strong> enabled and <strong>Anonymous Auth</strong> enabled.' +
         '</div>' +
         '<div class="btn-row">' +
-          '<button class="btn-sm btn-green" onclick="saveGitHubSettings()">Save</button>' +
+          '<button class="btn-sm btn-green" onclick="saveFirebaseSettings()">Save</button>' +
           '<button class="btn-sm btn-outline" onclick="closeModal()">Cancel</button>' +
         '</div>';
       document.getElementById('modalOverlay').classList.add('open');
     }
 
-    function saveGitHubSettings() {
-      var token = document.getElementById('ghToken').value.trim();
-      if (!token) return;
-      setupGitHub(token);
-      closeModal();
-      syncToGitHub();
+    function saveFirebaseSettings() {
+      var json = document.getElementById('fbConfigJson').value.trim();
+      if (!json) return;
+      try {
+        var config = JSON.parse(json);
+        if (!config.apiKey || !config.projectId) {
+          setSyncStatus('Invalid config - need apiKey and projectId', false);
+          return;
+        }
+        fbApp = null;
+        fbDb = null;
+        saveFbConfig(config);
+        closeModal();
+        syncToFirebase();
+      } catch(e) {
+        setSyncStatus('Invalid JSON: ' + e.message, false);
+      }
     }
 
     function syncNow() {
-      syncToGitHub();
+      syncToFirebase();
     }
 
     const defaultCreds = { username: 'admin', password: 'admin123' };
@@ -570,11 +554,11 @@
       renderItems();
       renderSlideshow();
       startSessionMonitor();
-      var config = getGhConfig();
-      if (config && config.token) {
+      var config = getFbConfig();
+      if (config && config.apiKey) {
         setSyncStatus('Ready', true);
       } else {
-        setSyncStatus('Setup GitHub', false);
+        setSyncStatus('Setup Firebase', false);
       }
     }
 
@@ -585,7 +569,7 @@
       localStorage.setItem(DATA_KEY, JSON.stringify(data));
       renderCategories();
       renderItems();
-      syncToGitHub();
+      syncToFirebase();
     }
     function getImages() {
       return JSON.parse(localStorage.getItem(IMAGES_KEY)) || {};
@@ -593,7 +577,7 @@
     function saveImages(data) {
       localStorage.setItem(IMAGES_KEY, JSON.stringify(data));
       renderCategories();
-      syncToGitHub();
+      syncToFirebase();
     }
 
     function getSlides() {
@@ -602,7 +586,7 @@
     function saveSlides(data) {
       localStorage.setItem(SLIDESHOW_KEY, JSON.stringify(data));
       renderSlideshow();
-      syncToGitHub();
+      syncToFirebase();
     }
 
     function renderSlideshow() {
