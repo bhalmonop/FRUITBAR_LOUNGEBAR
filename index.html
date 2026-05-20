@@ -636,6 +636,7 @@
         const img = catImages[cat] || '';
         const card = document.createElement('div');
         card.className = 'category-card';
+        card.classList.add('visible');
         card.dataset.anim = '';
         if (img) card.style.backgroundImage = 'url(' + img + ')';
         card.innerHTML = `
