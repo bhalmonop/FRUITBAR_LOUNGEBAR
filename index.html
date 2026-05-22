@@ -339,6 +339,8 @@
       opacity: 1; transform: translateY(0);
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <div id="ambient-bg"></div>
@@ -385,9 +387,9 @@
         <p>FruitBar Lounge & Bar is your destination for handcrafted cocktails, premium spirits, and an atmosphere that blends sophistication with comfort.</p>
         <p>From international classics to signature creations, our bartenders bring artistry to every glass. Whether you're celebrating or winding down, FruitBar is where moments become memories.</p>
         <div class="about-stats">
-          <div class="stat"><h4>95+</h4><p>Drinks</p></div>
-          <div class="stat"><h4>10</h4><p>Categories</p></div>
-          <div class="stat"><h4>1</h4><p>Location</p></div>
+          <div class="stat"><h4 id="statDrinks">95+</h4><p>Drinks</p></div>
+          <div class="stat"><h4 id="statCategories">10</h4><p>Categories</p></div>
+          <div class="stat"><h4 id="statLocation">1</h4><p>Location</p></div>
         </div>
       </div>
     </div>
@@ -430,7 +432,7 @@
         <div class="contact-icon">&#9906;</div>
         <div>
           <h4>Location</h4>
-          <p>Beirut, Lebanon</p>
+          <p>Bcharre, Lebanon</p>
         </div>
       </a>
     </div>
@@ -438,7 +440,7 @@
 
   <footer>
     <p>&copy; 2026 <span class="green">FRUITBAR</span> Lounge & Bar. All rights reserved.</p>
-    <p style="margin-top:8px;font-size:12px;color:var(--text-muted)"><a href="admin.html" style="color:var(--text-muted);text-decoration:none;opacity:0.4;transition:opacity 0.3s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.4'">Admin</a></p>
+
   </footer>
 
   <script>
@@ -563,10 +565,8 @@
         { name: "Mojito", price: 5 }
       ]
     };
-    const stored = localStorage.getItem('fruitbar_menu_data');
-    const menuData = stored ? JSON.parse(stored) : defaultMenuData;
-
-    const defaultCatImages = {
+    var menuData = defaultMenuData;
+    var defaultCatImages = {
       "International Cocktails": "images/international.jpg",
       "Whiskey": "images/whisky.jpg",
       "Vodka": "images/vodka.jpg",
@@ -578,8 +578,78 @@
       "Soft Drinks & Juices": "images/soft-drink.jpg",
       "Non-Alcoholic": "images/non-alcoholic.jpg"
     };
-    const storedImages = localStorage.getItem('fruitbar_cat_images');
-    const catImages = storedImages ? JSON.parse(storedImages) : defaultCatImages;
+    var catImages = defaultCatImages;
+
+    var firebaseConfig = {
+      apiKey: "AIzaSyBCOCNYxo9kD7m742PrJkdbPRExFbYt0Sg",
+      authDomain: "fruitbar.firebaseapp.com",
+      projectId: "fruitbar",
+      storageBucket: "fruitbar.firebasestorage.app",
+      messagingSenderId: "288799258793",
+      appId: "1:288799258793:web:65c237814600b81611d1b8",
+      measurementId: "G-R05GW2DKJM"
+    };
+
+    var fdb = null;
+    if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+      firebase.initializeApp(firebaseConfig);
+      fdb = firebase.firestore();
+    }
+
+    function updateAboutStats() {
+      var cats = Object.keys(menuData).length;
+      var drinks = 0;
+      Object.keys(menuData).forEach(function(c) { drinks += menuData[c].length; });
+      document.getElementById('statCategories').textContent = cats;
+      document.getElementById('statDrinks').textContent = drinks + '+';
+    }
+
+    async function loadData() {
+      // Try Firebase first
+      if (fdb) {
+        try {
+          var doc = await fdb.collection('fruitbar').doc('data').get();
+          if (doc.exists) {
+            var data = doc.data();
+            if (data.menu && typeof data.menu === 'object' && Object.keys(data.menu).length) {
+              menuData = data.menu;
+              localStorage.setItem('fruitbar_menu_data', JSON.stringify(data.menu));
+            }
+            if (data.images) {
+              catImages = data.images;
+              localStorage.setItem('fruitbar_cat_images', JSON.stringify(data.images));
+            }
+            if (data.slides) {
+              localStorage.setItem('fruitbar_slideshow', JSON.stringify(data.slides));
+            }
+            initSlideshow();
+          }
+        } catch(e) { /* fall through */ }
+      }
+
+      // Fall back to localStorage cache
+      if (!menuData || !Object.keys(menuData).length) {
+        var stored = localStorage.getItem('fruitbar_menu_data');
+        if (stored) {
+          try { var parsed = JSON.parse(stored); if (parsed && Object.keys(parsed).length) menuData = parsed; }
+          catch(e) {}
+        }
+      }
+
+      // Fall back to defaults
+      if (!menuData || !Object.keys(menuData).length) {
+        menuData = defaultMenuData;
+      }
+
+      updateAboutStats();
+      renderCategoryGrid();
+    }
+
+    var storedImages = localStorage.getItem('fruitbar_cat_images');
+    if (storedImages) {
+      try { var parsed = JSON.parse(storedImages); if (parsed) catImages = parsed; }
+      catch(e) {}
+    }
 
     const grid = document.getElementById('categoryGrid');
     const itemsSection = document.getElementById('itemsSection');
@@ -587,21 +657,25 @@
     const itemsList = document.getElementById('itemsList');
     const closeBtn = document.getElementById('closeItems');
 
-    Object.keys(menuData).forEach(cat => {
-      const items = menuData[cat];
-      const img = catImages[cat] || '';
-      const card = document.createElement('div');
-      card.className = 'category-card';
-      card.dataset.anim = '';
-      if (img) card.style.backgroundImage = 'url(' + img + ')';
-      card.innerHTML = `
-        <h3>${cat}</h3>
-        <p>${items.length} selection${items.length > 1 ? 's' : ''}</p>
-        <span class="category-count">View Menu &rarr;</span>
-      `;
-      card.addEventListener('click', () => showCategory(cat));
-      grid.appendChild(card);
-    });
+    function renderCategoryGrid() {
+      grid.innerHTML = '';
+      Object.keys(menuData).forEach(cat => {
+        const items = menuData[cat];
+        const img = catImages[cat] || '';
+        const card = document.createElement('div');
+        card.className = 'category-card';
+        card.classList.add('visible');
+        card.dataset.anim = '';
+        if (img) card.style.backgroundImage = 'url(' + img + ')';
+        card.innerHTML = `
+          <h3>${cat}</h3>
+          <p>${items.length} selection${items.length > 1 ? 's' : ''}</p>
+          <span class="category-count">View Menu &rarr;</span>
+        `;
+        card.addEventListener('click', () => showCategory(cat));
+        grid.appendChild(card);
+      });
+    }
 
     function showCategory(cat) {
       const items = menuData[cat];
@@ -646,6 +720,7 @@
       document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 60);
     });
 
+    loadData();
   </script>
   <script>
     (function() {

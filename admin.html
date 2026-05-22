@@ -166,8 +166,8 @@
       font-size: 14px; outline: none;
       transition: border-color 0.3s; margin-bottom: 16px;
     }
-    .modal input { color: var(--text); }
-    .modal select { color: #111; }
+    .modal input, .modal select { color: var(--text); }
+    .modal select option { color: #111; background: #fff; }
     .modal input:focus, .modal select:focus { border-color: var(--green-light); }
     .modal .btn-row { display: flex; gap: 12px; margin-top: 8px; }
     .modal .btn-row .btn-sm { flex: 1; text-align: center; padding: 12px; }
@@ -179,6 +179,9 @@
       .cat-info, .item-info { flex-wrap: wrap; }
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
 </head>
 <body>
   <div class="login-screen" id="loginScreen">
@@ -195,14 +198,16 @@
   </div>
 
   <div class="dashboard" id="dashboard">
-    <div class="dash-header">
-      <h2><em>FRUIT</em>BAR &mdash; Admin</h2>
-      <div class="user-info">
-        <span id="dashUser"></span>
-        <a href="index.html" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);color:#8A8680;text-decoration:none;font-size:13px;transition:all 0.3s" onmouseover="this.style.color='#00a31c'" onmouseout="this.style.color='#8A8680'">View Site</a>
-        <button class="logout-btn" onclick="logout()">Sign Out</button>
+      <div class="dash-header">
+        <h2><em>FRUIT</em>BAR &mdash; Admin</h2>
+        <div class="user-info">
+          <span id="syncStatus" style="font-size:12px;color:var(--text-muted);cursor:pointer" onclick="syncNow()" title="Click to sync now"></span>
+          <span id="dashUser"></span>
+          <a href="index.html" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);color:#8A8680;text-decoration:none;font-size:13px;transition:all 0.3s" onmouseover="this.style.color='#00a31c'" onmouseout="this.style.color='#8A8680'">View Site</a>
+          <button class="logout-btn" onclick="logout()" style="border-color:rgba(255,255,255,0.1)">Sign Out</button>
+          <button class="logout-btn" onclick="openFirebaseSettings()" style="border-color:rgba(255,255,255,0.1)">Settings</button>
+        </div>
       </div>
-    </div>
     <div class="dash-body">
       <div class="tab-bar">
         <button class="tab-btn active" id="tabCategories" onclick="switchTab('categories')">Categories</button>
@@ -244,6 +249,122 @@
     const SESSION_KEY = 'fruitbar_session';
     const SLIDESHOW_KEY = 'fruitbar_slideshow';
     const TOKEN_DURATION = 30 * 60 * 1000; // 30 minutes
+
+    var syncStatusEl = null;
+    var fbApp = null;
+    var fbDb = null;
+
+    function getFbConfig() {
+      try { return JSON.parse(localStorage.getItem('fruitbar_fb_config')); }
+      catch(e) { return null; }
+    }
+
+    function saveFbConfig(config) {
+      localStorage.setItem('fruitbar_fb_config', JSON.stringify(config));
+    }
+
+    function setSyncStatus(text, ok) {
+      if (!syncStatusEl) syncStatusEl = document.getElementById('syncStatus');
+      if (!syncStatusEl) return;
+      syncStatusEl.textContent = text;
+      syncStatusEl.style.color = ok ? 'var(--green-light)' : 'var(--danger)';
+    }
+
+    function getFirebaseDb() {
+      if (fbDb) return fbDb;
+      var config = getFbConfig();
+      if (!config) return null;
+      try {
+        if (!fbApp) {
+          fbApp = firebase.initializeApp(config);
+          firebase.auth().signInAnonymously().catch(function(e) {
+            console.error('Firebase auth error:', e);
+          });
+        }
+        fbDb = firebase.firestore();
+        return fbDb;
+      } catch(e) {
+        console.error('Firebase init error:', e);
+        return null;
+      }
+    }
+
+    async function syncToFirebase() {
+      var config = getFbConfig();
+      if (!config) {
+        setSyncStatus('Firebase not configured', false);
+        return;
+      }
+      setSyncStatus('Syncing...', true);
+
+      try {
+        var db = getFirebaseDb();
+        if (!db) {
+          setSyncStatus('Firebase init failed', false);
+          return;
+        }
+
+        var menu = JSON.parse(localStorage.getItem(DATA_KEY));
+        var slides = JSON.parse(localStorage.getItem(SLIDESHOW_KEY));
+        var images = JSON.parse(localStorage.getItem(IMAGES_KEY));
+
+        await db.collection('fruitbar').doc('data').set({
+          menu: menu,
+          slides: slides,
+          images: images,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        setSyncStatus('Synced', true);
+        setTimeout(function() { setSyncStatus('', true); }, 3000);
+      } catch(e) {
+        console.error('Firebase sync error:', e);
+        setSyncStatus('Error: ' + e.message, false);
+      }
+    }
+
+    function openFirebaseSettings() {
+      var config = getFbConfig();
+      var configJson = config ? JSON.stringify(config, null, 2) : '';
+      document.getElementById('modalContent').innerHTML =
+        '<h3>Firebase Sync Settings</h3>' +
+        '<label>Firebase Config (JSON)</label>' +
+        '<textarea id="fbConfigJson" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:var(--surface);color:var(--text);font-size:13px;font-family:monospace;outline:none;margin-bottom:16px;resize:vertical;min-height:180px">' + configJson.replace(/</g, '&lt;') + '</textarea>' +
+        '<div style="margin-bottom:16px;font-size:12px;color:var(--text-muted)">' +
+          'Paste your Firebase web app config from ' +
+          '<strong>Project Settings &gt; General &gt; Your apps</strong>. ' +
+          'Need a <a href="https://console.firebase.google.com/" target="_blank" style="color:var(--green-light)">Firebase project</a> ' +
+          'with <strong>Firestore</strong> enabled and <strong>Anonymous Auth</strong> enabled.' +
+        '</div>' +
+        '<div class="btn-row">' +
+          '<button class="btn-sm btn-green" onclick="saveFirebaseSettings()">Save</button>' +
+          '<button class="btn-sm btn-outline" onclick="closeModal()">Cancel</button>' +
+        '</div>';
+      document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function saveFirebaseSettings() {
+      var json = document.getElementById('fbConfigJson').value.trim();
+      if (!json) return;
+      try {
+        var config = JSON.parse(json);
+        if (!config.apiKey || !config.projectId) {
+          setSyncStatus('Invalid config - need apiKey and projectId', false);
+          return;
+        }
+        fbApp = null;
+        fbDb = null;
+        saveFbConfig(config);
+        closeModal();
+        syncToFirebase();
+      } catch(e) {
+        setSyncStatus('Invalid JSON: ' + e.message, false);
+      }
+    }
+
+    function syncNow() {
+      syncToFirebase();
+    }
 
     const defaultCreds = { username: 'admin', password: 'admin123' };
     const defaultMenu = {
@@ -433,6 +554,12 @@
       renderItems();
       renderSlideshow();
       startSessionMonitor();
+      var config = getFbConfig();
+      if (config && config.apiKey) {
+        setSyncStatus('Ready', true);
+      } else {
+        setSyncStatus('Setup Firebase', false);
+      }
     }
 
     function getMenu() {
@@ -442,6 +569,7 @@
       localStorage.setItem(DATA_KEY, JSON.stringify(data));
       renderCategories();
       renderItems();
+      syncToFirebase();
     }
     function getImages() {
       return JSON.parse(localStorage.getItem(IMAGES_KEY)) || {};
@@ -449,6 +577,7 @@
     function saveImages(data) {
       localStorage.setItem(IMAGES_KEY, JSON.stringify(data));
       renderCategories();
+      syncToFirebase();
     }
 
     function getSlides() {
@@ -457,6 +586,7 @@
     function saveSlides(data) {
       localStorage.setItem(SLIDESHOW_KEY, JSON.stringify(data));
       renderSlideshow();
+      syncToFirebase();
     }
 
     function renderSlideshow() {

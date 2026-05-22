@@ -1,0 +1,121 @@
+{
+  "International Cocktails": [
+    { "name": "Amaretto Sour", "price": 10 },
+    { "name": "Bullfrog", "price": 12 },
+    { "name": "Cuba Libre", "price": 8 },
+    { "name": "Blue Hawai", "price": 8 },
+    { "name": "Dry Martini", "price": 10 },
+    { "name": "Gin Basil", "price": 8 },
+    { "name": "Gin Tonic", "price": 8 },
+    { "name": "Godfather", "price": 10 },
+    { "name": "Jamaica", "price": 8 },
+    { "name": "Long Island", "price": 12 },
+    { "name": "Margarita", "price": 10 },
+    { "name": "Midori Sour", "price": 10 },
+    { "name": "Mojito", "price": 8 },
+    { "name": "B52", "price": 10 },
+    { "name": "Take Me Home", "price": 10 },
+    { "name": "Jagermeister Heaven", "price": 10 },
+    { "name": "Sex on the beach", "price": 10 },
+    { "name": "Tequila sunrise", "price": 8 },
+    { "name": "PassionFruit Martini", "price": 12 },
+    { "name": "Espresso Martini", "price": 12 },
+    { "name": "Jagerbomb", "price": 7 },
+    { "name": "Jack knife", "price": 8 },
+    { "name": "Baileys liquor", "price": 10 },
+    { "name": "Irish cream cocktail", "price": 12 },
+    { "name": "Old Fashioned", "price": 12 },
+    { "name": "Negroni", "price": 12 },
+    { "name": "Manhattan", "price": 12 },
+    { "name": "Aperol Spritz", "price": 10 }
+  ],
+  "Whiskey": [
+    { "name": "Old Parr", "price": 12 },
+    { "name": "Johnnie Walker Red Label", "price": 10 },
+    { "name": "Johnnie Walker Black Label", "price": 12 },
+    { "name": "Jameson", "price": 8 },
+    { "name": "J&B Rare", "price": 8 },
+    { "name": "Jack Daniel's", "price": 8 },
+    { "name": "Chivas 18 Y", "price": 15 },
+    { "name": "Jim Beam", "price": 8 }
+  ],
+  "Vodka": [
+    { "name": "Stolichnaya", "price": 8 },
+    { "name": "Poliakov", "price": 8 },
+    { "name": "Smirnoff Black", "price": 10 },
+    { "name": "Grey Goose", "price": 12 },
+    { "name": "Belvedere", "price": 15 }
+  ],
+  "Gin & Rum": [
+    { "name": "Gordon's", "price": 8 },
+    { "name": "Hendrick's", "price": 15 },
+    { "name": "Hendrick's Neptunia", "price": 15 },
+    { "name": "Tanqueray", "price": 12 },
+    { "name": "Gibson's pink", "price": 10 },
+    { "name": "Saint James White", "price": 12 },
+    { "name": "Saint James Spiced", "price": 12 },
+    { "name": "Captain morgan white", "price": 10 },
+    { "name": "Captain morgan spiced", "price": 12 },
+    { "name": "Bacardi", "price": 12 }
+  ],
+  "Wine": [
+    { "name": "Red (By The Bottle)", "price": 30, "desc": "Chateau Kefraya / KSARA" },
+    { "name": "White (By The bottle)", "price": 30, "desc": "Chateau Kefraya" },
+    { "name": "Rose (By The bottle)", "price": 30, "desc": "KSARA Sunset" },
+    { "name": "Prosecco", "price": 30 }
+  ],
+  "Beer": [
+    { "name": "Almaza", "price": 4 },
+    { "name": "Almaza Light", "price": 4 },
+    { "name": "Almaza Dark", "price": 5 },
+    { "name": "Almaza Rose", "price": 4 },
+    { "name": "Almaza Unfiltered", "price": 5 },
+    { "name": "Mexican Beer", "price": 6 }
+  ],
+  "Shots": [
+    { "name": "Tequila Silver", "price": 4 },
+    { "name": "Tequila Gold", "price": 4 },
+    { "name": "Brain Damage", "price": 7 },
+    { "name": "Doudou", "price": 5 },
+    { "name": "Jagermeister", "price": 5 },
+    { "name": "Absinthe Red", "price": 8 },
+    { "name": "Cocktail shot", "price": 3 },
+    { "name": "Sambuca", "price": 5 },
+    { "name": "B-52", "price": 8 }
+  ],
+  "Bottles": [
+    { "name": "Gin Basil Pitcher 0.5 L", "price": 25 },
+    { "name": "Gin Basil Pitcher 1 L", "price": 40 },
+    { "name": "Margarita Pitcher 0.5 L", "price": 25 },
+    { "name": "Margarita Pitcher 1 L", "price": 40 },
+    { "name": "Sangria Pitcher 0.5 L", "price": 35 },
+    { "name": "Sangria Pitcher 1 L", "price": 60 },
+    { "name": "Stolichnaya", "price": 35 },
+    { "name": "Poliakov", "price": 40 },
+    { "name": "Belvedere", "price": 150 },
+    { "name": "Grey Goose", "price": 120 },
+    { "name": "Gordon's", "price": 35 },
+    { "name": "Tanqueray", "price": 70 },
+    { "name": "Hendricks", "price": 90 },
+    { "name": "Jose Cuervo Silver", "price": 40 },
+    { "name": "Camino Gold", "price": 45 },
+    { "name": "Old Parr", "price": 80 },
+    { "name": "Johnnie Walker Red Label", "price": 45 },
+    { "name": "Johnnie Walker Black Label", "price": 80 },
+    { "name": "Jameson", "price": 45 }
+  ],
+  "Soft Drinks & Juices": [
+    { "name": "Water", "price": 1 },
+    { "name": "Juice", "price": 3 },
+    { "name": "Energy drink", "price": 3 },
+    { "name": "Soft drink", "price": 3 },
+    { "name": "Juice Pitcher", "price": 5 },
+    { "name": "Energy Drink Pitcher", "price": 5 }
+  ],
+  "Non-Alcoholic": [
+    { "name": "Lemonade", "price": 5 },
+    { "name": "Minted Lemonade", "price": 5 },
+    { "name": "Jamaica", "price": 5 },
+    { "name": "Mojito", "price": 5 }
+  ]
+}
