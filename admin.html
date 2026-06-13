@@ -188,12 +188,15 @@
     <div class="login-card">
       <h1><em>FRUIT</em>BAR</h1>
       <p>Admin Dashboard</p>
-      <label>Username</label>
-      <input type="text" id="loginUser" placeholder="Enter username" autocomplete="off" />
+      <label>Email</label>
+      <input type="email" id="loginUser" placeholder="Enter email" autocomplete="off" />
       <label>Password</label>
       <input type="password" id="loginPass" placeholder="Enter password" />
       <button class="btn" onclick="login()">Sign In</button>
       <div class="login-error" id="loginError">Invalid credentials</div>
+      <div style="margin-top:24px;text-align:center;font-size:13px;color:var(--text-muted)">
+        <a href="#" onclick="openFirebaseSettings();return false" style="color:var(--green-light);text-decoration:none">Configure Firebase</a>
+      </div>
     </div>
   </div>
 
@@ -243,12 +246,9 @@
   </div>
 
   <script>
-    const ADMIN_KEY = 'fruitbar_admin';
     const DATA_KEY = 'fruitbar_menu_data';
     const IMAGES_KEY = 'fruitbar_cat_images';
-    const SESSION_KEY = 'fruitbar_session';
     const SLIDESHOW_KEY = 'fruitbar_slideshow';
-    const TOKEN_DURATION = 30 * 60 * 1000; // 30 minutes
 
     var syncStatusEl = null;
     var fbApp = null;
@@ -277,9 +277,6 @@
       try {
         if (!fbApp) {
           fbApp = firebase.initializeApp(config);
-          firebase.auth().signInAnonymously().catch(function(e) {
-            console.error('Firebase auth error:', e);
-          });
         }
         fbDb = firebase.firestore();
         return fbDb;
@@ -334,7 +331,8 @@
           'Paste your Firebase web app config from ' +
           '<strong>Project Settings &gt; General &gt; Your apps</strong>. ' +
           'Need a <a href="https://console.firebase.google.com/" target="_blank" style="color:var(--green-light)">Firebase project</a> ' +
-          'with <strong>Firestore</strong> enabled and <strong>Anonymous Auth</strong> enabled.' +
+          'with <strong>Firestore</strong> enabled and <strong>Email/Password Auth</strong> enabled in Authentication.<br><br>' +
+    'After saving, log in with the admin email/password you created in Firebase Console.' +
         '</div>' +
         '<div class="btn-row">' +
           '<button class="btn-sm btn-green" onclick="saveFirebaseSettings()">Save</button>' +
@@ -365,114 +363,7 @@
     function syncNow() {
       syncToFirebase();
     }
-
-    const defaultCreds = { username: 'admin', password: 'admin123' };
-    const defaultMenu = {
-      "International Cocktails": [
-        { name: "Amaretto Sour", price: 10 }, { name: "Bullfrog", price: 12 },
-        { name: "Cuba Libre", price: 8 }, { name: "Blue Hawai", price: 8 },
-        { name: "Dry Martini", price: 10 }, { name: "Gin Basil", price: 8 },
-        { name: "Gin Tonic", price: 8 }, { name: "Godfather", price: 10 },
-        { name: "Jamaica", price: 8 }, { name: "Long Island", price: 12 },
-        { name: "Margarita", price: 10 }, { name: "Midori Sour", price: 10 },
-        { name: "Mojito", price: 8 }, { name: "B52", price: 10 },
-        { name: "Take Me Home", price: 10 }, { name: "Jagermeister Heaven", price: 10 },
-        { name: "Sex on the beach", price: 10 }, { name: "Tequila sunrise", price: 8 },
-        { name: "PassionFruit Martini", price: 12 }, { name: "Espresso Martini", price: 12 },
-        { name: "Jagerbomb", price: 7 }, { name: "Jack knife", price: 8 },
-        { name: "Baileys liquor", price: 10 }, { name: "Irish cream cocktail", price: 12 },
-        { name: "Old Fashioned", price: 12 }, { name: "Negroni", price: 12 },
-        { name: "Manhattan", price: 12 }, { name: "Aperol Spritz", price: 10 }
-      ],
-      "Whiskey": [
-        { name: "Old Parr", price: 12 }, { name: "Johnnie Walker Red Label", price: 10 },
-        { name: "Johnnie Walker Black Label", price: 12 }, { name: "Jameson", price: 8 },
-        { name: "J&B Rare", price: 8 }, { name: "Jack Daniel's", price: 8 },
-        { name: "Chivas 18 Y", price: 15 }, { name: "Jim Beam", price: 8 }
-      ],
-      "Vodka": [
-        { name: "Stolichnaya", price: 8 }, { name: "Poliakov", price: 8 },
-        { name: "Smirnoff Black", price: 10 }, { name: "Grey Goose", price: 12 },
-        { name: "Belvedere", price: 15 }
-      ],
-      "Gin & Rum": [
-        { name: "Gordon's", price: 8 }, { name: "Hendrick's", price: 15 },
-        { name: "Hendrick's Neptunia", price: 15 }, { name: "Tanqueray", price: 12 },
-        { name: "Gibson's pink", price: 10 }, { name: "Saint James White", price: 12 },
-        { name: "Saint James Spiced", price: 12 }, { name: "Captain morgan white", price: 10 },
-        { name: "Captain morgan spiced", price: 12 }, { name: "Bacardi", price: 12 }
-      ],
-      "Wine": [
-        { name: "Red (By The Bottle)", price: 30, desc: "Chateau Kefraya / KSARA" },
-        { name: "White (By The bottle)", price: 30, desc: "Chateau Kefraya" },
-        { name: "Rose (By The bottle)", price: 30, desc: "KSARA Sunset" },
-        { name: "Prosecco", price: 30 }
-      ],
-      "Beer": [
-        { name: "Almaza", price: 4 }, { name: "Almaza Light", price: 4 },
-        { name: "Almaza Dark", price: 5 }, { name: "Almaza Rose", price: 4 },
-        { name: "Almaza Unfiltered", price: 5 }, { name: "Mexican Beer", price: 6 }
-      ],
-      "Shots": [
-        { name: "Tequila Silver", price: 4 }, { name: "Tequila Gold", price: 4 },
-        { name: "Brain Damage", price: 7 }, { name: "Doudou", price: 5 },
-        { name: "Jagermeister", price: 5 }, { name: "Absinthe Red", price: 8 },
-        { name: "Cocktail shot", price: 3 }, { name: "Sambuca", price: 5 },
-        { name: "B-52", price: 8 }
-      ],
-      "Bottles": [
-        { name: "Gin Basil Pitcher 0.5 L", price: 25 }, { name: "Gin Basil Pitcher 1 L", price: 40 },
-        { name: "Margarita Pitcher 0.5 L", price: 25 }, { name: "Margarita Pitcher 1 L", price: 40 },
-        { name: "Sangria Pitcher 0.5 L", price: 35 }, { name: "Sangria Pitcher 1 L", price: 60 },
-        { name: "Stolichnaya", price: 35 }, { name: "Poliakov", price: 40 },
-        { name: "Belvedere", price: 150 }, { name: "Grey Goose", price: 120 },
-        { name: "Gordon's", price: 35 }, { name: "Tanqueray", price: 70 },
-        { name: "Hendricks", price: 90 }, { name: "Jose Cuervo Silver", price: 40 },
-        { name: "Camino Gold", price: 45 }, { name: "Old Parr", price: 80 },
-        { name: "Johnnie Walker Red Label", price: 45 }, { name: "Johnnie Walker Black Label", price: 80 },
-        { name: "Jameson", price: 45 }
-      ],
-      "Soft Drinks & Juices": [
-        { name: "Water", price: 1 }, { name: "Juice", price: 3 },
-        { name: "Energy drink", price: 3 }, { name: "Soft drink", price: 3 },
-        { name: "Juice Pitcher", price: 5 }, { name: "Energy Drink Pitcher", price: 5 }
-      ],
-      "Non-Alcoholic": [
-        { name: "Lemonade", price: 5 }, { name: "Minted Lemonade", price: 5 },
-        { name: "Jamaica", price: 5 }, { name: "Mojito", price: 5 }
-      ]
-    };
-    const defaultImages = {
-      "International Cocktails": "images/international.jpg",
-      "Whiskey": "images/whisky.jpg",
-      "Vodka": "images/vodka.jpg",
-      "Gin & Rum": "images/gin&rum.jpg",
-      "Wine": "images/win.jpg",
-      "Beer": "images/beer.jpg",
-      "Shots": "images/shots.jpg",
-      "Bottles": "images/bottles.jpg",
-      "Soft Drinks & Juices": "images/soft-drink.jpg",
-      "Non-Alcoholic": "images/non-alcoholic.jpg"
-    };
-
-    function getToken() {
-      try {
-        const raw = localStorage.getItem(SESSION_KEY);
-        if (!raw) return null;
-        const token = JSON.parse(raw);
-        if (!token || !token.username || !token.expiresAt) return null;
-        return token;
-      } catch {
-        return null;
-      }
-    }
-
-    function isTokenExpired(token) {
-      return Date.now() >= token.expiresAt;
-    }
-
     function clearSession() {
-      localStorage.removeItem(SESSION_KEY);
       document.getElementById('dashboard').style.display = 'none';
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('loginError').style.display = 'none';
@@ -480,70 +371,84 @@
       document.getElementById('loginPass').value = '';
     }
 
+    async function loadFromFirebase() {
+      var db = getFirebaseDb();
+      if (!db) return;
+      try {
+        var doc = await db.collection('fruitbar').doc('data').get();
+        if (doc.exists) {
+          var data = doc.data();
+          if (data.menu && typeof data.menu === 'object' && Object.keys(data.menu).length) {
+            localStorage.setItem(DATA_KEY, JSON.stringify(data.menu));
+          }
+          if (data.images && typeof data.images === 'object') {
+            localStorage.setItem(IMAGES_KEY, JSON.stringify(data.images));
+          }
+          if (data.slides && Array.isArray(data.slides)) {
+            localStorage.setItem(SLIDESHOW_KEY, JSON.stringify(data.slides));
+          }
+        }
+      } catch(e) {
+        console.error('Load from Firebase error:', e);
+      }
+    }
+
     function init() {
-      if (!localStorage.getItem(ADMIN_KEY)) {
-        localStorage.setItem(ADMIN_KEY, JSON.stringify(defaultCreds));
-      }
-      if (!localStorage.getItem(DATA_KEY)) {
-        localStorage.setItem(DATA_KEY, JSON.stringify(defaultMenu));
-      }
-      if (!localStorage.getItem(IMAGES_KEY)) {
-        localStorage.setItem(IMAGES_KEY, JSON.stringify(defaultImages));
-      }
-      const token = getToken();
-      if (token && isTokenExpired(token)) {
-        clearSession();
-        showSessionExpired();
-        return;
-      }
-      if (token) {
-        showDash(token.username);
+      var config = getFbConfig();
+      if (config) {
+        try {
+          if (!fbApp) {
+            fbApp = firebase.initializeApp(config);
+            fbDb = firebase.firestore();
+          }
+          firebase.auth().onAuthStateChanged(function(user) {
+            if (user) {
+              loadFromFirebase().then(function() {
+                showDash(user.email);
+              });
+            }
+          });
+        } catch(e) {
+          console.error('Firebase init error:', e);
+        }
       }
     }
 
     function login() {
-      const user = document.getElementById('loginUser').value.trim();
+      const email = document.getElementById('loginUser').value.trim();
       const pass = document.getElementById('loginPass').value;
-      const creds = JSON.parse(localStorage.getItem(ADMIN_KEY));
-      if (user === creds.username && pass === creds.password) {
-        const token = { username: user, expiresAt: Date.now() + TOKEN_DURATION };
-        localStorage.setItem(SESSION_KEY, JSON.stringify(token));
-        showDash(user);
-      } else {
-        const errorEl = document.getElementById('loginError');
-        errorEl.textContent = 'Invalid credentials';
-        errorEl.style.display = 'block';
+      var config = getFbConfig();
+      if (!config) {
+        document.getElementById('loginError').textContent = 'Firebase not configured. Click "Configure Firebase" below.';
+        document.getElementById('loginError').style.display = 'block';
+        return;
       }
+      try {
+        if (!fbApp) {
+          fbApp = firebase.initializeApp(config);
+          fbDb = firebase.firestore();
+        }
+      } catch(e) {
+        document.getElementById('loginError').textContent = 'Firebase init error: ' + e.message;
+        document.getElementById('loginError').style.display = 'block';
+        return;
+      }
+      firebase.auth().signInWithEmailAndPassword(email, pass).then(function(cred) {
+        loadFromFirebase().then(function() {
+          showDash(cred.user.email);
+        });
+      }).catch(function(error) {
+        document.getElementById('loginError').textContent = error.message;
+        document.getElementById('loginError').style.display = 'block';
+      });
     }
 
     function logout() {
-      clearSession();
-    }
-
-    function showSessionExpired() {
-      const errorEl = document.getElementById('loginError');
-      errorEl.textContent = 'Session expired. Please sign in again.';
-      errorEl.style.display = 'block';
-    }
-
-    function ensureSession() {
-      const token = getToken();
-      if (!token || isTokenExpired(token)) {
+      firebase.auth().signOut().then(function() {
         clearSession();
-        showSessionExpired();
-        return false;
-      }
-      return true;
-    }
-
-    function startSessionMonitor() {
-      setInterval(function() {
-        const token = getToken();
-        if (token && isTokenExpired(token)) {
-          clearSession();
-          showSessionExpired();
-        }
-      }, 10000);
+      }).catch(function() {
+        clearSession();
+      });
     }
 
     function showDash(user) {
@@ -553,7 +458,6 @@
       renderCategories();
       renderItems();
       renderSlideshow();
-      startSessionMonitor();
       var config = getFbConfig();
       if (config && config.apiKey) {
         setSyncStatus('Ready', true);
@@ -651,7 +555,6 @@
     }
 
     function removeSlide(idx) {
-      if (!ensureSession()) return;
       if (!confirm('Remove this image from slideshow?')) return;
       const slides = getSlides();
       slides.splice(idx, 1);
@@ -740,7 +643,6 @@
     }
 
     function removeCat(cat) {
-      if (!ensureSession()) return;
       if (!confirm('Delete "' + cat + '" and all its items?')) return;
       const data = getMenu();
       const images = getImages();
@@ -751,7 +653,6 @@
     }
 
     function removeItem(cat, idx) {
-      if (!ensureSession()) return;
       if (!confirm('Delete this item?')) return;
       const data = getMenu();
       data[cat].splice(idx, 1);
@@ -778,7 +679,6 @@
     }
 
     function addCat() {
-      if (!ensureSession()) return;
       const name = document.getElementById('newCatName').value.trim();
       const img = document.getElementById('newCatImg').value.trim();
       if (!name) return;
@@ -812,7 +712,6 @@
     }
 
     function saveEditCat(oldName) {
-      if (!ensureSession()) return;
       const newName = document.getElementById('editCatName').value.trim();
       const img = document.getElementById('editCatImg').value.trim();
       if (!newName) return;
@@ -857,7 +756,6 @@
     }
 
     function addItem() {
-      if (!ensureSession()) return;
       const cat = document.getElementById('newItemCat').value;
       const name = document.getElementById('newItemName').value.trim();
       const price = parseFloat(document.getElementById('newItemPrice').value);
@@ -896,7 +794,6 @@
     }
 
     function saveEditItem(oldCat, idx) {
-      if (!ensureSession()) return;
       const newCat = document.getElementById('editItemCat').value;
       const name = document.getElementById('editItemName').value.trim();
       const price = parseFloat(document.getElementById('editItemPrice').value);
