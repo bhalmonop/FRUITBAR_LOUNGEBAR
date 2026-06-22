@@ -861,10 +861,12 @@
       const cats = Object.keys(data);
       const overlay = document.getElementById('modalOverlay');
       const catOptions = cats.map(c => `<option value="${c.replace(/"/g, '&quot;')}"${preSelectedCat && c === preSelectedCat ? ' selected' : ''}>${c}</option>`).join('');
+      var catField = preSelectedCat
+        ? '<input type="hidden" id="newItemCat" value="' + preSelectedCat.replace(/"/g, '&quot;') + '" /><div style="margin-bottom:16px;padding:10px 14px;border-radius:8px;background:var(--surface);color:var(--text-muted);font-size:14px"><strong style="color:var(--text)">Category:</strong> ' + preSelectedCat + '</div>'
+        : '<label>Category</label><select id="newItemCat">' + catOptions + '</select>';
       document.getElementById('modalContent').innerHTML = `
         <h3>Add Item</h3>
-        <label>Category</label>
-        <select id="newItemCat">${catOptions}</select>
+        ${catField}
         <label>Item Name</label>
         <input type="text" id="newItemName" placeholder="e.g. Mojito" />
         <label>Price (USD)</label>
