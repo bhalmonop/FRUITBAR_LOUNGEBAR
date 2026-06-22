@@ -546,12 +546,7 @@
 
     function renderCategoryGrid() {
       grid.innerHTML = '';
-      var cats = Object.keys(menuData);
-      if (!cats.length) {
-        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:16px;opacity:0.3">&#127864;</div><p style="font-size:16px">Menu coming soon...</p></div>';
-        return;
-      }
-      cats.forEach(cat => {
+      Object.keys(menuData).forEach(cat => {
         const items = menuData[cat];
         const img = catImages[cat] || '';
         const card = document.createElement('div');
