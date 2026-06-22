@@ -113,6 +113,8 @@
       background: var(--bg2); border: 1px solid rgba(255,255,255,0.06);
       border-radius: var(--radius); margin-bottom: 12px; overflow: hidden;
     }
+    .cat-card.dragging { opacity: 0.4; }
+    .cat-card.drag-over { border-color: var(--green-light); box-shadow: 0 0 20px var(--green-glow, rgba(0,167,28,0.3)); }
     .cat-row, .item-row {
       display: flex; justify-content: space-between; align-items: center;
       padding: 16px 20px; gap: 12px;
@@ -124,10 +126,34 @@
     }
     .cat-info .cat-name { font-weight: 600; font-size: 15px; }
     .cat-info .cat-meta { font-size: 12px; color: var(--text-muted); }
+    .drag-handle {
+      cursor: grab; color: var(--text-muted); font-size: 18px; padding: 4px; user-select: none; flex-shrink: 0;
+      display: flex; align-items: center;
+    }
+    .drag-handle:active { cursor: grabbing; }
     .item-info .item-name { font-weight: 500; font-size: 14px; }
     .item-info .item-cat { font-size: 12px; color: var(--text-muted); }
     .item-info .item-price { color: var(--green-light); font-weight: 600; font-size: 14px; margin-left: auto; }
     .actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .cat-picker {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .cat-picker-btn {
+      padding: 14px 20px; border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.06);
+      background: var(--bg2); color: var(--text); font-size: 14px; font-weight: 500;
+      cursor: pointer; text-align: left; transition: all 0.2s; font-family: inherit;
+    }
+    .cat-picker-btn:hover { background: var(--surface-hover); border-color: var(--green-light); }
+    .cat-picker-btn.active { border-color: var(--green-light); background: rgba(0,167,28,0.1); }
+    .sub-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    }
+    .sub-header h3 { font-size: 18px; font-weight: 600; }
+    .back-btn {
+      background: none; border: none; color: var(--text-muted); font-size: 20px;
+      cursor: pointer; padding: 4px; display: flex; align-items: center;
+    }
+    .back-btn:hover { color: var(--text); }
 
     .slide-card {
       background: var(--bg2); border: 1px solid rgba(255,255,255,0.06);
@@ -166,8 +192,8 @@
       font-size: 14px; outline: none;
       transition: border-color 0.3s; margin-bottom: 16px;
     }
-    .modal input { color: var(--text); }
-    .modal select { color: #111; }
+    .modal input, .modal select { color: var(--text); }
+    .modal select option { color: #111; background: #fff; }
     .modal input:focus, .modal select:focus { border-color: var(--green-light); }
     .modal .btn-row { display: flex; gap: 12px; margin-top: 8px; }
     .modal .btn-row .btn-sm { flex: 1; text-align: center; padding: 12px; }
@@ -179,30 +205,38 @@
       .cat-info, .item-info { flex-wrap: wrap; }
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
 </head>
 <body>
   <div class="login-screen" id="loginScreen">
     <div class="login-card">
       <h1><em>FRUIT</em>BAR</h1>
       <p>Admin Dashboard</p>
-      <label>Username</label>
-      <input type="text" id="loginUser" placeholder="Enter username" autocomplete="off" />
+      <label>Email</label>
+      <input type="email" id="loginUser" placeholder="Enter email" autocomplete="off" />
       <label>Password</label>
       <input type="password" id="loginPass" placeholder="Enter password" />
       <button class="btn" onclick="login()">Sign In</button>
       <div class="login-error" id="loginError">Invalid credentials</div>
+      <div style="margin-top:24px;text-align:center;font-size:13px;color:var(--text-muted)">
+        <a href="#" onclick="openFirebaseSettings();return false" style="color:var(--green-light);text-decoration:none">Configure Firebase</a>
+      </div>
     </div>
   </div>
 
   <div class="dashboard" id="dashboard">
-    <div class="dash-header">
-      <h2><em>FRUIT</em>BAR &mdash; Admin</h2>
-      <div class="user-info">
-        <span id="dashUser"></span>
-        <a href="index.html" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);color:#8A8680;text-decoration:none;font-size:13px;transition:all 0.3s" onmouseover="this.style.color='#00a31c'" onmouseout="this.style.color='#8A8680'">View Site</a>
-        <button class="logout-btn" onclick="logout()">Sign Out</button>
+      <div class="dash-header">
+        <h2><em>FRUIT</em>BAR &mdash; Admin</h2>
+        <div class="user-info">
+          <span id="syncStatus" style="font-size:12px;color:var(--text-muted);cursor:pointer" onclick="syncNow()" title="Click to sync now"></span>
+          <span id="dashUser"></span>
+          <a href="index.html" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);color:#8A8680;text-decoration:none;font-size:13px;transition:all 0.3s" onmouseover="this.style.color='#00a31c'" onmouseout="this.style.color='#8A8680'">View Site</a>
+          <button class="logout-btn" onclick="logout()" style="border-color:rgba(255,255,255,0.1)">Sign Out</button>
+          <button class="logout-btn" onclick="openFirebaseSettings()" style="border-color:rgba(255,255,255,0.1)">Settings</button>
+        </div>
       </div>
-    </div>
     <div class="dash-body">
       <div class="tab-bar">
         <button class="tab-btn active" id="tabCategories" onclick="switchTab('categories')">Categories</button>
@@ -217,10 +251,6 @@
         <div id="categoriesList"></div>
       </div>
       <div class="tab-content" id="tabItemsContent">
-        <div class="section-title">
-          <h3>All Items</h3>
-          <button class="btn-sm btn-green" onclick="openAddItem()">+ Add Item</button>
-        </div>
         <div id="itemsList"></div>
       </div>
       <div class="tab-content" id="tabSlideshowContent">
@@ -238,120 +268,150 @@
   </div>
 
   <script>
-    const ADMIN_KEY = 'fruitbar_admin';
     const DATA_KEY = 'fruitbar_menu_data';
     const IMAGES_KEY = 'fruitbar_cat_images';
-    const SESSION_KEY = 'fruitbar_session';
     const SLIDESHOW_KEY = 'fruitbar_slideshow';
-    const TOKEN_DURATION = 30 * 60 * 1000; // 30 minutes
+    const ORDER_KEY = 'fruitbar_cat_order';
 
-    const defaultCreds = { username: 'admin', password: 'admin123' };
-    const defaultMenu = {
-      "International Cocktails": [
-        { name: "Amaretto Sour", price: 10 }, { name: "Bullfrog", price: 12 },
-        { name: "Cuba Libre", price: 8 }, { name: "Blue Hawai", price: 8 },
-        { name: "Dry Martini", price: 10 }, { name: "Gin Basil", price: 8 },
-        { name: "Gin Tonic", price: 8 }, { name: "Godfather", price: 10 },
-        { name: "Jamaica", price: 8 }, { name: "Long Island", price: 12 },
-        { name: "Margarita", price: 10 }, { name: "Midori Sour", price: 10 },
-        { name: "Mojito", price: 8 }, { name: "B52", price: 10 },
-        { name: "Take Me Home", price: 10 }, { name: "Jagermeister Heaven", price: 10 },
-        { name: "Sex on the beach", price: 10 }, { name: "Tequila sunrise", price: 8 },
-        { name: "PassionFruit Martini", price: 12 }, { name: "Espresso Martini", price: 12 },
-        { name: "Jagerbomb", price: 7 }, { name: "Jack knife", price: 8 },
-        { name: "Baileys liquor", price: 10 }, { name: "Irish cream cocktail", price: 12 },
-        { name: "Old Fashioned", price: 12 }, { name: "Negroni", price: 12 },
-        { name: "Manhattan", price: 12 }, { name: "Aperol Spritz", price: 10 }
-      ],
-      "Whiskey": [
-        { name: "Old Parr", price: 12 }, { name: "Johnnie Walker Red Label", price: 10 },
-        { name: "Johnnie Walker Black Label", price: 12 }, { name: "Jameson", price: 8 },
-        { name: "J&B Rare", price: 8 }, { name: "Jack Daniel's", price: 8 },
-        { name: "Chivas 18 Y", price: 15 }, { name: "Jim Beam", price: 8 }
-      ],
-      "Vodka": [
-        { name: "Stolichnaya", price: 8 }, { name: "Poliakov", price: 8 },
-        { name: "Smirnoff Black", price: 10 }, { name: "Grey Goose", price: 12 },
-        { name: "Belvedere", price: 15 }
-      ],
-      "Gin & Rum": [
-        { name: "Gordon's", price: 8 }, { name: "Hendrick's", price: 15 },
-        { name: "Hendrick's Neptunia", price: 15 }, { name: "Tanqueray", price: 12 },
-        { name: "Gibson's pink", price: 10 }, { name: "Saint James White", price: 12 },
-        { name: "Saint James Spiced", price: 12 }, { name: "Captain morgan white", price: 10 },
-        { name: "Captain morgan spiced", price: 12 }, { name: "Bacardi", price: 12 }
-      ],
-      "Wine": [
-        { name: "Red (By The Bottle)", price: 30, desc: "Chateau Kefraya / KSARA" },
-        { name: "White (By The bottle)", price: 30, desc: "Chateau Kefraya" },
-        { name: "Rose (By The bottle)", price: 30, desc: "KSARA Sunset" },
-        { name: "Prosecco", price: 30 }
-      ],
-      "Beer": [
-        { name: "Almaza", price: 4 }, { name: "Almaza Light", price: 4 },
-        { name: "Almaza Dark", price: 5 }, { name: "Almaza Rose", price: 4 },
-        { name: "Almaza Unfiltered", price: 5 }, { name: "Mexican Beer", price: 6 }
-      ],
-      "Shots": [
-        { name: "Tequila Silver", price: 4 }, { name: "Tequila Gold", price: 4 },
-        { name: "Brain Damage", price: 7 }, { name: "Doudou", price: 5 },
-        { name: "Jagermeister", price: 5 }, { name: "Absinthe Red", price: 8 },
-        { name: "Cocktail shot", price: 3 }, { name: "Sambuca", price: 5 },
-        { name: "B-52", price: 8 }
-      ],
-      "Bottles": [
-        { name: "Gin Basil Pitcher 0.5 L", price: 25 }, { name: "Gin Basil Pitcher 1 L", price: 40 },
-        { name: "Margarita Pitcher 0.5 L", price: 25 }, { name: "Margarita Pitcher 1 L", price: 40 },
-        { name: "Sangria Pitcher 0.5 L", price: 35 }, { name: "Sangria Pitcher 1 L", price: 60 },
-        { name: "Stolichnaya", price: 35 }, { name: "Poliakov", price: 40 },
-        { name: "Belvedere", price: 150 }, { name: "Grey Goose", price: 120 },
-        { name: "Gordon's", price: 35 }, { name: "Tanqueray", price: 70 },
-        { name: "Hendricks", price: 90 }, { name: "Jose Cuervo Silver", price: 40 },
-        { name: "Camino Gold", price: 45 }, { name: "Old Parr", price: 80 },
-        { name: "Johnnie Walker Red Label", price: 45 }, { name: "Johnnie Walker Black Label", price: 80 },
-        { name: "Jameson", price: 45 }
-      ],
-      "Soft Drinks & Juices": [
-        { name: "Water", price: 1 }, { name: "Juice", price: 3 },
-        { name: "Energy drink", price: 3 }, { name: "Soft drink", price: 3 },
-        { name: "Juice Pitcher", price: 5 }, { name: "Energy Drink Pitcher", price: 5 }
-      ],
-      "Non-Alcoholic": [
-        { name: "Lemonade", price: 5 }, { name: "Minted Lemonade", price: 5 },
-        { name: "Jamaica", price: 5 }, { name: "Mojito", price: 5 }
-      ]
-    };
-    const defaultImages = {
-      "International Cocktails": "images/international.jpg",
-      "Whiskey": "images/whisky.jpg",
-      "Vodka": "images/vodka.jpg",
-      "Gin & Rum": "images/gin&rum.jpg",
-      "Wine": "images/win.jpg",
-      "Beer": "images/beer.jpg",
-      "Shots": "images/shots.jpg",
-      "Bottles": "images/bottles.jpg",
-      "Soft Drinks & Juices": "images/soft-drink.jpg",
-      "Non-Alcoholic": "images/non-alcoholic.jpg"
-    };
+    var selectedCat = null;
 
-    function getToken() {
+    var syncStatusEl = null;
+    var fbApp = null;
+    var fbDb = null;
+
+    function getFbConfig() {
+      try { return JSON.parse(localStorage.getItem('fruitbar_fb_config')); }
+      catch(e) { return null; }
+    }
+
+    function saveFbConfig(config) {
+      localStorage.setItem('fruitbar_fb_config', JSON.stringify(config));
+    }
+
+    function setSyncStatus(text, ok) {
+      if (!syncStatusEl) syncStatusEl = document.getElementById('syncStatus');
+      if (!syncStatusEl) return;
+      syncStatusEl.textContent = text;
+      syncStatusEl.style.color = ok ? 'var(--green-light)' : 'var(--danger)';
+    }
+
+    function getFirebaseDb() {
+      if (fbDb) return fbDb;
+      var config = getFbConfig();
+      if (!config) return null;
       try {
-        const raw = localStorage.getItem(SESSION_KEY);
-        if (!raw) return null;
-        const token = JSON.parse(raw);
-        if (!token || !token.username || !token.expiresAt) return null;
-        return token;
-      } catch {
+        if (!fbApp) {
+          fbApp = firebase.initializeApp(config);
+        }
+        fbDb = firebase.firestore();
+        return fbDb;
+      } catch(e) {
+        console.error('Firebase init error:', e);
         return null;
       }
     }
 
-    function isTokenExpired(token) {
-      return Date.now() >= token.expiresAt;
+    async function syncToFirebase() {
+      var config = getFbConfig();
+      if (!config) {
+        setSyncStatus('Firebase not configured', false);
+        return;
+      }
+      setSyncStatus('Syncing...', true);
+
+      try {
+        var db = getFirebaseDb();
+        if (!db) {
+          setSyncStatus('Firebase init failed', false);
+          return;
+        }
+
+        var menu = JSON.parse(localStorage.getItem(DATA_KEY));
+        var slides = JSON.parse(localStorage.getItem(SLIDESHOW_KEY));
+        var images = JSON.parse(localStorage.getItem(IMAGES_KEY));
+        var order = getOrder();
+
+        await db.collection('fruitbar').doc('data').set({
+          menu: menu,
+          slides: slides,
+          images: images,
+          order: order,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        setSyncStatus('Synced', true);
+        setTimeout(function() { setSyncStatus('', true); }, 3000);
+      } catch(e) {
+        console.error('Firebase sync error:', e);
+        setSyncStatus('Error: ' + e.message, false);
+      }
     }
 
+    function openFirebaseSettings() {
+      var config = getFbConfig();
+      var configJson = config ? JSON.stringify(config, null, 2) : '';
+      document.getElementById('modalContent').innerHTML =
+        '<h3>Firebase Sync Settings</h3>' +
+        '<label>Firebase Config (JSON)</label>' +
+        '<textarea id="fbConfigJson" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:var(--surface);color:var(--text);font-size:13px;font-family:monospace;outline:none;margin-bottom:16px;resize:vertical;min-height:180px">' + configJson.replace(/</g, '&lt;') + '</textarea>' +
+        '<div style="margin-bottom:16px;font-size:12px;color:var(--text-muted);text-align:left">' +
+          'Paste your Firebase web app config from ' +
+          '<strong>Project Settings &gt; General &gt; Your apps</strong>. ' +
+          'Need a <a href="https://console.firebase.google.com/" target="_blank" style="color:var(--green-light)">Firebase project</a> ' +
+          'with <strong>Firestore</strong> enabled and <strong>Email/Password Auth</strong> enabled in Authentication.<br><br>' +
+    'After saving, log in with the admin email/password you created in Firebase Console.<br><br>' +
+    '<strong style="color:#F0EDE8">⚠ Important:</strong> For visitors to see your data, your Firestore security rules must allow public read access. Go to your <a href="https://console.firebase.google.com/" target="_blank" style="color:var(--green-light)">Firebase Console</a> → Firestore → Rules and set:<br>' +
+    '<code style="display:block;background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:6px;margin-top:6px;white-space:pre;font-size:11px">rules_version = \'2\';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read: if true;\n      allow write: if request.auth != null;\n    }\n  }\n}</code>' +
+        '</div>' +
+        '<div class="btn-row">' +
+          '<button class="btn-sm btn-green" onclick="saveFirebaseSettings()">Save</button>' +
+          '<button class="btn-sm btn-outline" onclick="closeModal()">Cancel</button>' +
+        '</div>';
+      document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function saveFirebaseSettings() {
+      var json = document.getElementById('fbConfigJson').value.trim();
+      if (!json) return;
+      try {
+        var config = JSON.parse(json);
+        if (!config.apiKey || !config.projectId) {
+          setSyncStatus('Invalid config - need apiKey and projectId', false);
+          return;
+        }
+        fbApp = null;
+        fbDb = null;
+        saveFbConfig(config);
+        closeModal();
+        syncToFirebase();
+      } catch(e) {
+        setSyncStatus('Invalid JSON: ' + e.message, false);
+      }
+    }
+
+    function getOrder() {
+      try { return JSON.parse(localStorage.getItem(ORDER_KEY)) || []; }
+      catch(e) { return []; }
+    }
+    function saveOrder(arr) {
+      localStorage.setItem(ORDER_KEY, JSON.stringify(arr));
+    }
+    function rebuildOrder() {
+      var data = getMenu();
+      var order = getOrder().filter(function(c) { return data[c] !== undefined; });
+      var existing = {};
+      order.forEach(function(c) { existing[c] = true; });
+      Object.keys(data).forEach(function(c) {
+        if (!existing[c]) order.push(c);
+      });
+      saveOrder(order);
+      return order;
+    }
+
+    function syncNow() {
+      syncToFirebase();
+    }
     function clearSession() {
-      localStorage.removeItem(SESSION_KEY);
       document.getElementById('dashboard').style.display = 'none';
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('loginError').style.display = 'none';
@@ -359,70 +419,87 @@
       document.getElementById('loginPass').value = '';
     }
 
+    async function loadFromFirebase() {
+      var db = getFirebaseDb();
+      if (!db) return;
+      try {
+        var doc = await db.collection('fruitbar').doc('data').get();
+        if (doc.exists) {
+          var data = doc.data();
+          if (data.menu && typeof data.menu === 'object' && Object.keys(data.menu).length) {
+            localStorage.setItem(DATA_KEY, JSON.stringify(data.menu));
+          }
+          if (data.images && typeof data.images === 'object') {
+            localStorage.setItem(IMAGES_KEY, JSON.stringify(data.images));
+          }
+          if (data.slides && Array.isArray(data.slides)) {
+            localStorage.setItem(SLIDESHOW_KEY, JSON.stringify(data.slides));
+          }
+          if (data.order && Array.isArray(data.order)) {
+            saveOrder(data.order);
+          }
+        }
+      } catch(e) {
+        console.error('Load from Firebase error:', e);
+      }
+    }
+
     function init() {
-      if (!localStorage.getItem(ADMIN_KEY)) {
-        localStorage.setItem(ADMIN_KEY, JSON.stringify(defaultCreds));
-      }
-      if (!localStorage.getItem(DATA_KEY)) {
-        localStorage.setItem(DATA_KEY, JSON.stringify(defaultMenu));
-      }
-      if (!localStorage.getItem(IMAGES_KEY)) {
-        localStorage.setItem(IMAGES_KEY, JSON.stringify(defaultImages));
-      }
-      const token = getToken();
-      if (token && isTokenExpired(token)) {
-        clearSession();
-        showSessionExpired();
-        return;
-      }
-      if (token) {
-        showDash(token.username);
+      var config = getFbConfig();
+      if (config) {
+        try {
+          if (!fbApp) {
+            fbApp = firebase.initializeApp(config);
+            fbDb = firebase.firestore();
+          }
+          firebase.auth().onAuthStateChanged(function(user) {
+            if (user) {
+              loadFromFirebase().then(function() {
+                showDash(user.email);
+              });
+            }
+          });
+        } catch(e) {
+          console.error('Firebase init error:', e);
+        }
       }
     }
 
     function login() {
-      const user = document.getElementById('loginUser').value.trim();
+      const email = document.getElementById('loginUser').value.trim();
       const pass = document.getElementById('loginPass').value;
-      const creds = JSON.parse(localStorage.getItem(ADMIN_KEY));
-      if (user === creds.username && pass === creds.password) {
-        const token = { username: user, expiresAt: Date.now() + TOKEN_DURATION };
-        localStorage.setItem(SESSION_KEY, JSON.stringify(token));
-        showDash(user);
-      } else {
-        const errorEl = document.getElementById('loginError');
-        errorEl.textContent = 'Invalid credentials';
-        errorEl.style.display = 'block';
+      var config = getFbConfig();
+      if (!config) {
+        document.getElementById('loginError').textContent = 'Firebase not configured. Click "Configure Firebase" below.';
+        document.getElementById('loginError').style.display = 'block';
+        return;
       }
+      try {
+        if (!fbApp) {
+          fbApp = firebase.initializeApp(config);
+          fbDb = firebase.firestore();
+        }
+      } catch(e) {
+        document.getElementById('loginError').textContent = 'Firebase init error: ' + e.message;
+        document.getElementById('loginError').style.display = 'block';
+        return;
+      }
+      firebase.auth().signInWithEmailAndPassword(email, pass).then(function(cred) {
+        loadFromFirebase().then(function() {
+          showDash(cred.user.email);
+        });
+      }).catch(function(error) {
+        document.getElementById('loginError').textContent = error.message;
+        document.getElementById('loginError').style.display = 'block';
+      });
     }
 
     function logout() {
-      clearSession();
-    }
-
-    function showSessionExpired() {
-      const errorEl = document.getElementById('loginError');
-      errorEl.textContent = 'Session expired. Please sign in again.';
-      errorEl.style.display = 'block';
-    }
-
-    function ensureSession() {
-      const token = getToken();
-      if (!token || isTokenExpired(token)) {
+      firebase.auth().signOut().then(function() {
         clearSession();
-        showSessionExpired();
-        return false;
-      }
-      return true;
-    }
-
-    function startSessionMonitor() {
-      setInterval(function() {
-        const token = getToken();
-        if (token && isTokenExpired(token)) {
-          clearSession();
-          showSessionExpired();
-        }
-      }, 10000);
+      }).catch(function() {
+        clearSession();
+      });
     }
 
     function showDash(user) {
@@ -432,7 +509,12 @@
       renderCategories();
       renderItems();
       renderSlideshow();
-      startSessionMonitor();
+      var config = getFbConfig();
+      if (config && config.apiKey) {
+        setSyncStatus('Ready', true);
+      } else {
+        setSyncStatus('Setup Firebase', false);
+      }
     }
 
     function getMenu() {
@@ -442,6 +524,7 @@
       localStorage.setItem(DATA_KEY, JSON.stringify(data));
       renderCategories();
       renderItems();
+      syncToFirebase();
     }
     function getImages() {
       return JSON.parse(localStorage.getItem(IMAGES_KEY)) || {};
@@ -449,6 +532,7 @@
     function saveImages(data) {
       localStorage.setItem(IMAGES_KEY, JSON.stringify(data));
       renderCategories();
+      syncToFirebase();
     }
 
     function getSlides() {
@@ -457,6 +541,7 @@
     function saveSlides(data) {
       localStorage.setItem(SLIDESHOW_KEY, JSON.stringify(data));
       renderSlideshow();
+      syncToFirebase();
     }
 
     function renderSlideshow() {
@@ -521,7 +606,6 @@
     }
 
     function removeSlide(idx) {
-      if (!ensureSession()) return;
       if (!confirm('Remove this image from slideshow?')) return;
       const slides = getSlides();
       slides.splice(idx, 1);
@@ -550,78 +634,143 @@
       const data = getMenu();
       const images = getImages();
       const container = document.getElementById('categoriesList');
-      const keys = Object.keys(data);
-      if (!keys.length) {
+      const order = rebuildOrder();
+      if (!order.length) {
         container.innerHTML = '<div class="empty-state"><div class="icon">&#128193;</div><p>No categories yet.</p></div>';
         return;
       }
-      container.innerHTML = keys.map(cat => {
+      container.innerHTML = order.map(function(cat) {
         const img = images[cat] || '';
-        return `
-          <div class="cat-card">
-            <div class="cat-row">
-              <div class="cat-info">
-                ${img ? `<img class="cat-thumb" src="${img}" alt="" onerror="this.style.display='none'" />` : `<div class="cat-thumb"></div>`}
-                <div>
-                  <div class="cat-name">${cat}</div>
-                  <div class="cat-meta">${data[cat].length} item${data[cat].length !== 1 ? 's' : ''}</div>
-                </div>
-              </div>
-              <div class="actions">
-                <button class="btn-sm btn-outline" onclick="openEditCat('${cat.replace(/'/g, "\\'")}')">Edit</button>
-                <button class="btn-sm btn-danger" onclick="removeCat('${cat.replace(/'/g, "\\'")}')">Delete</button>
-              </div>
-            </div>
-          </div>
-        `;
+        return '<div class="cat-card" draggable="true" data-cat="' + cat.replace(/"/g, '&quot;') + '">' +
+          '<div class="cat-row">' +
+            '<div class="drag-handle" data-drag-handle>&#9776;</div>' +
+            '<div class="cat-info">' +
+              (img ? '<img class="cat-thumb" src="' + img + '" alt="" onerror="this.style.display=\'none\'" />' : '<div class="cat-thumb"></div>') +
+              '<div>' +
+                '<div class="cat-name">' + cat + '</div>' +
+                '<div class="cat-meta">' + data[cat].length + ' item' + (data[cat].length !== 1 ? 's' : '') + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="actions">' +
+              '<button class="btn-sm btn-outline" onclick="openEditCat(\'' + cat.replace(/'/g, "\\'") + '\')">Edit</button>' +
+              '<button class="btn-sm btn-danger" onclick="removeCat(\'' + cat.replace(/'/g, "\\'") + '\')">Delete</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
       }).join('');
+      setupDrag();
     }
 
-    function renderItems() {
+    function setupDrag() {
+      var cards = container.querySelectorAll('.cat-card[draggable]');
+      cards.forEach(function(card) {
+        card.addEventListener('dragstart', onDragStart);
+        card.addEventListener('dragend', onDragEnd);
+        card.addEventListener('dragover', onDragOver);
+        card.addEventListener('dragleave', onDragLeave);
+        card.addEventListener('drop', onDrop);
+      });
+    }
+    function onDragStart(e) {
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', this.dataset.cat);
+    }
+    function onDragEnd(e) {
+      this.classList.remove('dragging');
+      document.querySelectorAll('.cat-card').forEach(function(c) { c.classList.remove('drag-over'); });
+    }
+    function onDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      var card = e.target.closest('.cat-card');
+      if (card && card !== this) this.classList.add('drag-over');
+    }
+    function onDragLeave(e) {
+      this.classList.remove('drag-over');
+    }
+    function onDrop(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+      var fromCat = e.dataTransfer.getData('text/plain');
+      var toCat = this.dataset.cat;
+      if (!fromCat || fromCat === toCat) return;
+      var order = getOrder();
+      var fromIdx = order.indexOf(fromCat);
+      var toIdx = order.indexOf(toCat);
+      if (fromIdx === -1 || toIdx === -1) return;
+      order.splice(fromIdx, 1);
+      toIdx = order.indexOf(toCat);
+      order.splice(toIdx, 0, fromCat);
+      saveOrder(order);
+      renderCategories();
+    }
+    var container = document.getElementById('categoriesList');
+
+    function renderItems(cat) {
       const data = getMenu();
       const container = document.getElementById('itemsList');
-      const allItems = [];
-      Object.keys(data).forEach(cat => {
-        data[cat].forEach((item, idx) => {
-          allItems.push({ ...item, cat, idx });
-        });
-      });
-      if (!allItems.length) {
+      const order = rebuildOrder();
+      if (!order.length) {
         container.innerHTML = '<div class="empty-state"><div class="icon">&#127869;</div><p>No items yet.</p></div>';
         return;
       }
-      container.innerHTML = allItems.map(item => `
-        <div class="item-card">
-          <div class="item-row">
-            <div class="item-info">
-              <div>
-                <div class="item-name">${item.name}</div>
-                <div class="item-cat">${item.cat}</div>
-              </div>
-              <span class="item-price">$${item.price}</span>
-            </div>
-            <div class="actions">
-              <button class="btn-sm btn-outline" onclick="openEditItem('${item.cat.replace(/'/g, "\\'")}', ${item.idx})">Edit</button>
-              <button class="btn-sm btn-danger" onclick="removeItem('${item.cat.replace(/'/g, "\\'")}', ${item.idx})">Delete</button>
-            </div>
-          </div>
-        </div>
-      `).join('');
+      if (cat) {
+        var items = data[cat] || [];
+        container.innerHTML =
+          '<div class="sub-header">' +
+            '<button class="back-btn" onclick="renderItems()">&#8592;</button>' +
+            '<h3>' + cat + '</h3>' +
+            '<button class="btn-sm btn-green" onclick="openAddItem(\'' + cat.replace(/'/g, "\\'") + '\')" style="margin-left:auto">+ Add Item</button>' +
+          '</div>' +
+          items.map(function(item, idx) {
+            return '<div class="item-card">' +
+              '<div class="item-row">' +
+                '<div class="item-info">' +
+                  '<div>' +
+                    '<div class="item-name">' + item.name + '</div>' +
+                    (item.desc ? '<div class="item-cat">' + item.desc + '</div>' : '') +
+                  '</div>' +
+                  '<span class="item-price">$' + item.price + '</span>' +
+                '</div>' +
+                '<div class="actions">' +
+                  '<button class="btn-sm btn-outline" onclick="openEditItem(\'' + cat.replace(/'/g, "\\'") + '\',' + idx + ')">Edit</button>' +
+                  '<button class="btn-sm btn-danger" onclick="removeItem(\'' + cat.replace(/'/g, "\\'") + '\',' + idx + ')">Delete</button>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+          }).join('');
+      } else {
+        selectedCat = null;
+        container.innerHTML =
+          '<div class="section-title" style="margin-bottom:20px">' +
+            '<h3>Select a Category</h3>' +
+          '</div>' +
+          '<div class="cat-picker">' +
+          order.map(function(c) {
+            return '<button class="cat-picker-btn" onclick="renderItems(\'' + c.replace(/'/g, "\\'") + '\')">' +
+              c + ' <span style="color:var(--text-muted);font-size:13px;font-weight:400">(' + (data[c] ? data[c].length : 0) + ' items)</span>' +
+            '</button>';
+          }).join('') +
+          '</div>';
+      }
     }
 
     function removeCat(cat) {
-      if (!ensureSession()) return;
       if (!confirm('Delete "' + cat + '" and all its items?')) return;
       const data = getMenu();
       const images = getImages();
       delete data[cat];
       delete images[cat];
+      var order = getOrder();
+      var idx = order.indexOf(cat);
+      if (idx > -1) order.splice(idx, 1);
+      saveOrder(order);
       saveMenu(data);
       saveImages(images);
     }
 
     function removeItem(cat, idx) {
-      if (!ensureSession()) return;
       if (!confirm('Delete this item?')) return;
       const data = getMenu();
       data[cat].splice(idx, 1);
@@ -648,7 +797,6 @@
     }
 
     function addCat() {
-      if (!ensureSession()) return;
       const name = document.getElementById('newCatName').value.trim();
       const img = document.getElementById('newCatImg').value.trim();
       if (!name) return;
@@ -657,6 +805,9 @@
       if (data[name]) { alert('Category already exists'); return; }
       data[name] = [];
       if (img) images[name] = img;
+      var order = getOrder();
+      order.push(name);
+      saveOrder(order);
       saveMenu(data);
       saveImages(images);
       closeModal();
@@ -682,7 +833,6 @@
     }
 
     function saveEditCat(oldName) {
-      if (!ensureSession()) return;
       const newName = document.getElementById('editCatName').value.trim();
       const img = document.getElementById('editCatImg').value.trim();
       if (!newName) return;
@@ -694,6 +844,10 @@
         if (images[oldName]) images[newName] = images[oldName];
         delete data[oldName];
         delete images[oldName];
+        var order = getOrder();
+        var idx = order.indexOf(oldName);
+        if (idx > -1) order[idx] = newName;
+        saveOrder(order);
       }
       if (img) images[newName] = img;
       else delete images[newName];
@@ -707,10 +861,12 @@
       const cats = Object.keys(data);
       const overlay = document.getElementById('modalOverlay');
       const catOptions = cats.map(c => `<option value="${c.replace(/"/g, '&quot;')}"${preSelectedCat && c === preSelectedCat ? ' selected' : ''}>${c}</option>`).join('');
+      var catField = preSelectedCat
+        ? '<input type="hidden" id="newItemCat" value="' + preSelectedCat.replace(/"/g, '&quot;') + '" /><div style="margin-bottom:16px;padding:10px 14px;border-radius:8px;background:var(--surface);color:var(--text-muted);font-size:14px"><strong style="color:var(--text)">Category:</strong> ' + preSelectedCat + '</div>'
+        : '<label>Category</label><select id="newItemCat">' + catOptions + '</select>';
       document.getElementById('modalContent').innerHTML = `
         <h3>Add Item</h3>
-        <label>Category</label>
-        <select id="newItemCat">${catOptions}</select>
+        ${catField}
         <label>Item Name</label>
         <input type="text" id="newItemName" placeholder="e.g. Mojito" />
         <label>Price (USD)</label>
@@ -727,7 +883,6 @@
     }
 
     function addItem() {
-      if (!ensureSession()) return;
       const cat = document.getElementById('newItemCat').value;
       const name = document.getElementById('newItemName').value.trim();
       const price = parseFloat(document.getElementById('newItemPrice').value);
@@ -766,7 +921,6 @@
     }
 
     function saveEditItem(oldCat, idx) {
-      if (!ensureSession()) return;
       const newCat = document.getElementById('editItemCat').value;
       const name = document.getElementById('editItemName').value.trim();
       const price = parseFloat(document.getElementById('editItemPrice').value);

@@ -339,8 +339,31 @@
       opacity: 1; transform: translateY(0);
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 </head>
 <body>
+  <script>
+    (function() {
+      var ua = navigator.userAgent.toLowerCase();
+      if (ua.indexOf('instagram') > -1) {
+        var el = document.createElement('div');
+        el.id = 'insta-overlay';
+        el.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(10,10,10,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;font-family:"Inter",sans-serif';
+        var ios = /iphone|ipad|ipod/.test(ua);
+        el.innerHTML =
+          '<div style="font-size:48px;margin-bottom:12px">&#128270;</div>' +
+          '<h2 style="font-size:24px;font-weight:700;margin-bottom:8px;color:#F0EDE8">Open in External Browser</h2>' +
+          '<p style="font-size:14px;color:#8A8680;max-width:340px;margin-bottom:24px;line-height:1.6">For the best experience, please open this link in your ' + (ios ? 'Safari' : 'Chrome') + ' browser.</p>' +
+          (ios ?
+            '<div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#F0EDE8;max-width:340px;line-height:1.5">Tap the <strong>three dots</strong> (•••) at the bottom and select <strong>"Open in Safari"</strong></div>' :
+            '<div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#F0EDE8;max-width:340px;line-height:1.5">Tap the <strong>three dots</strong> (⋮) at the top and select <strong>"Open in Chrome"</strong></div>'
+          ) +
+          '<button onclick="this.parentElement.remove()" style="padding:14px 36px;border-radius:50px;border:none;background:linear-gradient(135deg,#00470c,#00a31c);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:0.3px">Continue Anyway</button>';
+        document.body.appendChild(el);
+      }
+    })();
+  </script>
   <div id="ambient-bg"></div>
   <nav id="navbar">
     <div class="logo">
@@ -385,9 +408,9 @@
         <p>FruitBar Lounge & Bar is your destination for handcrafted cocktails, premium spirits, and an atmosphere that blends sophistication with comfort.</p>
         <p>From international classics to signature creations, our bartenders bring artistry to every glass. Whether you're celebrating or winding down, FruitBar is where moments become memories.</p>
         <div class="about-stats">
-          <div class="stat"><h4>95+</h4><p>Drinks</p></div>
-          <div class="stat"><h4>10</h4><p>Categories</p></div>
-          <div class="stat"><h4>1</h4><p>Location</p></div>
+          <div class="stat"><h4 id="statDrinks">95+</h4><p>Drinks</p></div>
+          <div class="stat"><h4 id="statCategories">10</h4><p>Categories</p></div>
+          <div class="stat"><h4 id="statLocation">1</h4><p>Location</p></div>
         </div>
       </div>
     </div>
@@ -430,7 +453,7 @@
         <div class="contact-icon">&#9906;</div>
         <div>
           <h4>Location</h4>
-          <p>Beirut, Lebanon</p>
+          <p>Bcharre, Lebanon</p>
         </div>
       </a>
     </div>
@@ -438,148 +461,103 @@
 
   <footer>
     <p>&copy; 2026 <span class="green">FRUITBAR</span> Lounge & Bar. All rights reserved.</p>
-    <p style="margin-top:8px;font-size:12px;color:var(--text-muted)"><a href="admin.html" style="color:var(--text-muted);text-decoration:none;opacity:0.4;transition:opacity 0.3s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.4'">Admin</a></p>
+
   </footer>
 
   <script>
-    const defaultMenuData = {
-      "International Cocktails": [
-        { name: "Amaretto Sour", price: 10 },
-        { name: "Bullfrog", price: 12 },
-        { name: "Cuba Libre", price: 8 },
-        { name: "Blue Hawai", price: 8 },
-        { name: "Dry Martini", price: 10 },
-        { name: "Gin Basil", price: 8 },
-        { name: "Gin Tonic", price: 8 },
-        { name: "Godfather", price: 10 },
-        { name: "Jamaica", price: 8 },
-        { name: "Long Island", price: 12 },
-        { name: "Margarita", price: 10 },
-        { name: "Midori Sour", price: 10 },
-        { name: "Mojito", price: 8 },
-        { name: "B52", price: 10 },
-        { name: "Take Me Home", price: 10 },
-        { name: "Jagermeister Heaven", price: 10 },
-        { name: "Sex on the beach", price: 10 },
-        { name: "Tequila sunrise", price: 8 },
-        { name: "PassionFruit Martini", price: 12 },
-        { name: "Espresso Martini", price: 12 },
-        { name: "Jagerbomb", price: 7 },
-        { name: "Jack knife", price: 8 },
-        { name: "Baileys liquor", price: 10 },
-        { name: "Irish cream cocktail", price: 12 },
-        { name: "Old Fashioned", price: 12 },
-        { name: "Negroni", price: 12 },
-        { name: "Manhattan", price: 12 },
-        { name: "Aperol Spritz", price: 10 }
-      ],
-      "Whiskey": [
-        { name: "Old Parr", price: 12 },
-        { name: "Johnnie Walker Red Label", price: 10 },
-        { name: "Johnnie Walker Black Label", price: 12 },
-        { name: "Jameson", price: 8 },
-        { name: "J&B Rare", price: 8 },
-        { name: "Jack Daniel's", price: 8 },
-        { name: "Chivas 18 Y", price: 15 },
-        { name: "Jim Beam", price: 8 }
-      ],
-      "Vodka": [
-        { name: "Stolichnaya", price: 8 },
-        { name: "Poliakov", price: 8 },
-        { name: "Smirnoff Black", price: 10 },
-        { name: "Grey Goose", price: 12 },
-        { name: "Belvedere", price: 15 }
-      ],
-      "Gin & Rum": [
-        { name: "Gordon's", price: 8 },
-        { name: "Hendrick's", price: 15 },
-        { name: "Hendrick's Neptunia", price: 15 },
-        { name: "Tanqueray", price: 12 },
-        { name: "Gibson's pink", price: 10 },
-        { name: "Saint James White", price: 12 },
-        { name: "Saint James Spiced", price: 12 },
-        { name: "Captain morgan white", price: 10 },
-        { name: "Captain morgan spiced", price: 12 },
-        { name: "Bacardi", price: 12 }
-      ],
-      "Wine": [
-        { name: "Red (By The Bottle)", price: 30, desc: "Chateau Kefraya / KSARA" },
-        { name: "White (By The bottle)", price: 30, desc: "Chateau Kefraya" },
-        { name: "Rose (By The bottle)", price: 30, desc: "KSARA Sunset" },
-        { name: "Prosecco", price: 30 }
-      ],
-      "Beer": [
-        { name: "Almaza", price: 4 },
-        { name: "Almaza Light", price: 4 },
-        { name: "Almaza Dark", price: 5 },
-        { name: "Almaza Rose", price: 4 },
-        { name: "Almaza Unfiltered", price: 5 },
-        { name: "Mexican Beer", price: 6 }
-      ],
-      "Shots": [
-        { name: "Tequila Silver", price: 4 },
-        { name: "Tequila Gold", price: 4 },
-        { name: "Brain Damage", price: 7 },
-        { name: "Doudou", price: 5 },
-        { name: "Jagermeister", price: 5 },
-        { name: "Absinthe Red", price: 8 },
-        { name: "Cocktail shot", price: 3 },
-        { name: "Sambuca", price: 5 },
-        { name: "B-52", price: 8 }
-      ],
-      "Bottles": [
-        { name: "Gin Basil Pitcher 0.5 L", price: 25 },
-        { name: "Gin Basil Pitcher 1 L", price: 40 },
-        { name: "Margarita Pitcher 0.5 L", price: 25 },
-        { name: "Margarita Pitcher 1 L", price: 40 },
-        { name: "Sangria Pitcher 0.5 L", price: 35 },
-        { name: "Sangria Pitcher 1 L", price: 60 },
-        { name: "Stolichnaya", price: 35 },
-        { name: "Poliakov", price: 40 },
-        { name: "Belvedere", price: 150 },
-        { name: "Grey Goose", price: 120 },
-        { name: "Gordon's", price: 35 },
-        { name: "Tanqueray", price: 70 },
-        { name: "Hendricks", price: 90 },
-        { name: "Jose Cuervo Silver", price: 40 },
-        { name: "Camino Gold", price: 45 },
-        { name: "Old Parr", price: 80 },
-        { name: "Johnnie Walker Red Label", price: 45 },
-        { name: "Johnnie Walker Black Label", price: 80 },
-        { name: "Jameson", price: 45 }
-      ],
-      "Soft Drinks & Juices": [
-        { name: "Water", price: 1 },
-        { name: "Juice", price: 3 },
-        { name: "Energy drink", price: 3 },
-        { name: "Soft drink", price: 3 },
-        { name: "Juice Pitcher", price: 5 },
-        { name: "Energy Drink Pitcher", price: 5 }
-      ],
-      "Non-Alcoholic": [
-        { name: "Lemonade", price: 5 },
-        { name: "Minted Lemonade", price: 5 },
-        { name: "Jamaica", price: 5 },
-        { name: "Mojito", price: 5 }
-      ]
-    };
-    const stored = localStorage.getItem('fruitbar_menu_data');
-    const menuData = stored ? JSON.parse(stored) : defaultMenuData;
+    var menuData = {};
+    var catImages = {};
+    var catOrder = [];
 
-    const defaultCatImages = {
-      "International Cocktails": "images/international.jpg",
-      "Whiskey": "images/whisky.jpg",
-      "Vodka": "images/vodka.jpg",
-      "Gin & Rum": "images/gin&rum.jpg",
-      "Wine": "images/win.jpg",
-      "Beer": "images/beer.jpg",
-      "Shots": "images/shots.jpg",
-      "Bottles": "images/bottles.jpg",
-      "Soft Drinks & Juices": "images/soft-drink.jpg",
-      "Non-Alcoholic": "images/non-alcoholic.jpg"
+    var firebaseConfig = {
+      apiKey: "AIzaSyBCOCNYxo9kD7m742PrJkdbPRExFbYt0Sg",
+      authDomain: "fruitbar.firebaseapp.com",
+      projectId: "fruitbar",
+      storageBucket: "fruitbar.firebasestorage.app",
+      messagingSenderId: "288799258793",
+      appId: "1:288799258793:web:65c237814600b81611d1b8",
+      measurementId: "G-R05GW2DKJM"
     };
-    const storedImages = localStorage.getItem('fruitbar_cat_images');
-    const catImages = storedImages ? JSON.parse(storedImages) : defaultCatImages;
+
+    // Allow admin-configured Firebase config to override hardcoded one
+    try {
+      var storedConfig = JSON.parse(localStorage.getItem('fruitbar_fb_config'));
+      if (storedConfig && storedConfig.apiKey && storedConfig.projectId) {
+        firebaseConfig = storedConfig;
+      }
+    } catch(e) {}
+
+    var fdb = null;
+    if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+      try {
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        fdb = firebase.firestore();
+      } catch(e) { console.error('Firebase init error:', e); }
+    }
+
+    function updateAboutStats() {
+      var cats = Object.keys(menuData).length;
+      var drinks = 0;
+      Object.keys(menuData).forEach(function(c) { drinks += menuData[c].length; });
+      document.getElementById('statCategories').textContent = cats;
+      document.getElementById('statDrinks').textContent = drinks + '+';
+    }
+
+    async function loadData() {
+      // Try Firebase first
+      if (fdb) {
+        try {
+          var doc = await fdb.collection('fruitbar').doc('data').get();
+          if (doc.exists) {
+            var data = doc.data();
+            if (data.menu && typeof data.menu === 'object' && Object.keys(data.menu).length) {
+              menuData = data.menu;
+              localStorage.setItem('fruitbar_menu_data', JSON.stringify(data.menu));
+            }
+            if (data.images) {
+              catImages = data.images;
+              localStorage.setItem('fruitbar_cat_images', JSON.stringify(data.images));
+            }
+            if (data.slides) {
+              localStorage.setItem('fruitbar_slideshow', JSON.stringify(data.slides));
+            }
+            if (data.order && Array.isArray(data.order)) {
+              catOrder = data.order;
+              localStorage.setItem('fruitbar_cat_order', JSON.stringify(data.order));
+            }
+            initSlideshow();
+          }
+        } catch(e) {
+          console.error('Firebase fetch error:', e);
+          document.getElementById('statDrinks').textContent = '⚠';
+        }
+      }
+
+      // Fall back to localStorage cache
+      if (!menuData || !Object.keys(menuData).length) {
+        var stored = localStorage.getItem('fruitbar_menu_data');
+        if (stored) {
+          try { var parsed = JSON.parse(stored); if (parsed && Object.keys(parsed).length) menuData = parsed; }
+          catch(e) {}
+        }
+      }
+
+      updateAboutStats();
+      renderCategoryGrid();
+    }
+
+    var storedImages = localStorage.getItem('fruitbar_cat_images');
+    if (storedImages) {
+      try { var parsed = JSON.parse(storedImages); if (parsed) catImages = parsed; }
+      catch(e) {}
+    }
+    var storedOrder = localStorage.getItem('fruitbar_cat_order');
+    if (storedOrder) {
+      try { var parsed = JSON.parse(storedOrder); if (Array.isArray(parsed)) catOrder = parsed; }
+      catch(e) {}
+    }
+
+
 
     const grid = document.getElementById('categoryGrid');
     const itemsSection = document.getElementById('itemsSection');
@@ -587,21 +565,35 @@
     const itemsList = document.getElementById('itemsList');
     const closeBtn = document.getElementById('closeItems');
 
-    Object.keys(menuData).forEach(cat => {
-      const items = menuData[cat];
-      const img = catImages[cat] || '';
-      const card = document.createElement('div');
-      card.className = 'category-card';
-      card.dataset.anim = '';
-      if (img) card.style.backgroundImage = 'url(' + img + ')';
-      card.innerHTML = `
-        <h3>${cat}</h3>
-        <p>${items.length} selection${items.length > 1 ? 's' : ''}</p>
-        <span class="category-count">View Menu &rarr;</span>
-      `;
-      card.addEventListener('click', () => showCategory(cat));
-      grid.appendChild(card);
-    });
+    function getSortedCats() {
+      var keys = Object.keys(menuData);
+      if (catOrder.length) {
+        var ordered = catOrder.filter(function(c) { return menuData[c]; });
+        keys.forEach(function(c) { if (ordered.indexOf(c) === -1) ordered.push(c); });
+        return ordered;
+      }
+      return keys;
+    }
+
+    function renderCategoryGrid() {
+      grid.innerHTML = '';
+      getSortedCats().forEach(cat => {
+        const items = menuData[cat];
+        const img = catImages[cat] || '';
+        const card = document.createElement('div');
+        card.className = 'category-card';
+        card.classList.add('visible');
+        card.dataset.anim = '';
+        if (img) card.style.backgroundImage = 'url(' + img + ')';
+        card.innerHTML = `
+          <h3>${cat}</h3>
+          <p>${items.length} selection${items.length > 1 ? 's' : ''}</p>
+          <span class="category-count">View Menu &rarr;</span>
+        `;
+        card.addEventListener('click', () => showCategory(cat));
+        grid.appendChild(card);
+      });
+    }
 
     function showCategory(cat) {
       const items = menuData[cat];
@@ -616,8 +608,8 @@
         </div>
       `).join('');
       document.querySelectorAll('.category-card').forEach(c => c.classList.remove('active'));
-      const cards = document.querySelectorAll('.category-card');
-      const idx = Object.keys(menuData).indexOf(cat);
+      var cards = document.querySelectorAll('.category-card');
+      var idx = getSortedCats().indexOf(cat);
       if (cards[idx]) cards[idx].classList.add('active');
       itemsSection.classList.add('visible');
       itemsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -646,6 +638,7 @@
       document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 60);
     });
 
+    loadData();
   </script>
   <script>
     (function() {
