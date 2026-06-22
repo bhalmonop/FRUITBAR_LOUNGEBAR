@@ -458,9 +458,11 @@
     };
 
     var fdb = null;
-    if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
-      firebase.initializeApp(firebaseConfig);
-      fdb = firebase.firestore();
+    if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+      try {
+        firebase.initializeApp(firebaseConfig);
+        fdb = firebase.firestore();
+      } catch(e) { /* Firebase unavailable */ }
     }
 
     function updateAboutStats() {
@@ -503,6 +505,14 @@
         }
       }
 
+      // Final fallback: embedded data
+      if (!menuData || !Object.keys(menuData).length) {
+        menuData = fallbackData;
+        if (!Object.keys(catImages).length) {
+          catImages = fallbackImages;
+        }
+      }
+
       updateAboutStats();
       renderCategoryGrid();
     }
@@ -513,6 +523,27 @@
       catch(e) {}
     }
 
+    var fallbackData = {
+      "Beer": [{ name: "Stella Artois", price: 8, desc: "By the bottle" }, { name: "Heineken", price: 8, desc: "By the bottle" }, { name: "Corona Extra", price: 9, desc: "With lime" }, { name: "Local Draft", price: 7, desc: "Ask your server" }],
+      "Wine": [{ name: "Cabernet Sauvignon", price: 12, desc: "Glass" }, { name: "Chardonnay", price: 12, desc: "Glass" }, { name: "Rosé", price: 11, desc: "Glass" }],
+      "Vodka": [{ name: "Signature Vodka", price: 10, desc: "Premium" }, { name: "Flavored Vodka", price: 12, desc: "Selection available" }],
+      "Whisky": [{ name: "Blended Whisky", price: 12, desc: "By the glass" }, { name: "Single Malt", price: 18, desc: "Selection available" }],
+      "Gin & Rum": [{ name: "Gin Tonic", price: 12, desc: "Premium gin" }, { name: "Dark Rum", price: 11, desc: "By the glass" }, { name: "White Rum", price: 10, desc: "By the glass" }],
+      "Shots": [{ name: "Tequila Shot", price: 6, desc: "" }, { name: "Jägermeister", price: 7, desc: "" }, { name: "Sambuca", price: 7, desc: "" }],
+      "Soft Drinks": [{ name: "Fresh Juice", price: 5, desc: "Orange, lemon, apple" }, { name: "Energy Drink", price: 5, desc: "" }, { name: "Sparkling Water", price: 3, desc: "" }],
+      "Non-Alcoholic": [{ name: "Mocktail", price: 7, desc: "Ask for selection" }, { name: "Fresh Lemonade", price: 5, desc: "" }]
+    };
+    var fallbackImages = {
+      "Beer": "images/beer.jpg",
+      "Wine": "images/win.jpg",
+      "Vodka": "images/vodka.jpg",
+      "Whisky": "images/whisky.jpg",
+      "Gin & Rum": "images/gin&rum.jpg",
+      "Shots": "images/shots.jpg",
+      "Soft Drinks": "images/soft-drink.jpg",
+      "Non-Alcoholic": "images/non-alcoholic.jpg"
+    };
+
     const grid = document.getElementById('categoryGrid');
     const itemsSection = document.getElementById('itemsSection');
     const itemsTitle = document.getElementById('itemsTitle');
@@ -521,7 +552,12 @@
 
     function renderCategoryGrid() {
       grid.innerHTML = '';
-      Object.keys(menuData).forEach(cat => {
+      var cats = Object.keys(menuData);
+      if (!cats.length) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:16px;opacity:0.3">&#127864;</div><p style="font-size:16px">Menu coming soon...</p></div>';
+        return;
+      }
+      cats.forEach(cat => {
         const items = menuData[cat];
         const img = catImages[cat] || '';
         const card = document.createElement('div');
