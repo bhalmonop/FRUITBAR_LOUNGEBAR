@@ -343,6 +343,27 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 </head>
 <body>
+  <script>
+    (function() {
+      var ua = navigator.userAgent.toLowerCase();
+      if (ua.indexOf('instagram') > -1) {
+        var el = document.createElement('div');
+        el.id = 'insta-overlay';
+        el.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(10,10,10,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;font-family:"Inter",sans-serif';
+        var ios = /iphone|ipad|ipod/.test(ua);
+        el.innerHTML =
+          '<div style="font-size:48px;margin-bottom:12px">&#128270;</div>' +
+          '<h2 style="font-size:24px;font-weight:700;margin-bottom:8px;color:#F0EDE8">Open in External Browser</h2>' +
+          '<p style="font-size:14px;color:#8A8680;max-width:340px;margin-bottom:24px;line-height:1.6">For the best experience, please open this link in your ' + (ios ? 'Safari' : 'Chrome') + ' browser.</p>' +
+          (ios ?
+            '<div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#F0EDE8;max-width:340px;line-height:1.5">Tap the <strong>three dots</strong> (•••) at the bottom and select <strong>"Open in Safari"</strong></div>' :
+            '<div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#F0EDE8;max-width:340px;line-height:1.5">Tap the <strong>three dots</strong> (⋮) at the top and select <strong>"Open in Chrome"</strong></div>'
+          ) +
+          '<button onclick="this.parentElement.remove()" style="padding:14px 36px;border-radius:50px;border:none;background:linear-gradient(135deg,#00470c,#00a31c);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:0.3px">Continue Anyway</button>';
+        document.body.appendChild(el);
+      }
+    })();
+  </script>
   <div id="ambient-bg"></div>
   <nav id="navbar">
     <div class="logo">
