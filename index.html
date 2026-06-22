@@ -467,6 +467,7 @@
   <script>
     var menuData = {};
     var catImages = {};
+    var catOrder = [];
 
     var firebaseConfig = {
       apiKey: "AIzaSyBCOCNYxo9kD7m742PrJkdbPRExFbYt0Sg",
@@ -520,6 +521,10 @@
             if (data.slides) {
               localStorage.setItem('fruitbar_slideshow', JSON.stringify(data.slides));
             }
+            if (data.order && Array.isArray(data.order)) {
+              catOrder = data.order;
+              localStorage.setItem('fruitbar_cat_order', JSON.stringify(data.order));
+            }
             initSlideshow();
           }
         } catch(e) {
@@ -546,6 +551,11 @@
       try { var parsed = JSON.parse(storedImages); if (parsed) catImages = parsed; }
       catch(e) {}
     }
+    var storedOrder = localStorage.getItem('fruitbar_cat_order');
+    if (storedOrder) {
+      try { var parsed = JSON.parse(storedOrder); if (Array.isArray(parsed)) catOrder = parsed; }
+      catch(e) {}
+    }
 
 
 
@@ -555,9 +565,19 @@
     const itemsList = document.getElementById('itemsList');
     const closeBtn = document.getElementById('closeItems');
 
+    function getSortedCats() {
+      var keys = Object.keys(menuData);
+      if (catOrder.length) {
+        var ordered = catOrder.filter(function(c) { return menuData[c]; });
+        keys.forEach(function(c) { if (ordered.indexOf(c) === -1) ordered.push(c); });
+        return ordered;
+      }
+      return keys;
+    }
+
     function renderCategoryGrid() {
       grid.innerHTML = '';
-      Object.keys(menuData).forEach(cat => {
+      getSortedCats().forEach(cat => {
         const items = menuData[cat];
         const img = catImages[cat] || '';
         const card = document.createElement('div');
@@ -588,8 +608,8 @@
         </div>
       `).join('');
       document.querySelectorAll('.category-card').forEach(c => c.classList.remove('active'));
-      const cards = document.querySelectorAll('.category-card');
-      const idx = Object.keys(menuData).indexOf(cat);
+      var cards = document.querySelectorAll('.category-card');
+      var idx = getSortedCats().indexOf(cat);
       if (cards[idx]) cards[idx].classList.add('active');
       itemsSection.classList.add('visible');
       itemsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
