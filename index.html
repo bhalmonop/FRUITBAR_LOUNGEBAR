@@ -478,12 +478,20 @@
       measurementId: "G-R05GW2DKJM"
     };
 
+    // Allow admin-configured Firebase config to override hardcoded one
+    try {
+      var storedConfig = JSON.parse(localStorage.getItem('fruitbar_fb_config'));
+      if (storedConfig && storedConfig.apiKey && storedConfig.projectId) {
+        firebaseConfig = storedConfig;
+      }
+    } catch(e) {}
+
     var fdb = null;
     if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "YOUR_API_KEY") {
       try {
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         fdb = firebase.firestore();
-      } catch(e) { /* Firebase unavailable */ }
+      } catch(e) { console.error('Firebase init error:', e); }
     }
 
     function updateAboutStats() {
@@ -514,7 +522,10 @@
             }
             initSlideshow();
           }
-        } catch(e) { /* fall through */ }
+        } catch(e) {
+          console.error('Firebase fetch error:', e);
+          document.getElementById('statDrinks').textContent = '⚠';
+        }
       }
 
       // Fall back to localStorage cache

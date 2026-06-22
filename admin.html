@@ -327,12 +327,14 @@
         '<h3>Firebase Sync Settings</h3>' +
         '<label>Firebase Config (JSON)</label>' +
         '<textarea id="fbConfigJson" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:var(--surface);color:var(--text);font-size:13px;font-family:monospace;outline:none;margin-bottom:16px;resize:vertical;min-height:180px">' + configJson.replace(/</g, '&lt;') + '</textarea>' +
-        '<div style="margin-bottom:16px;font-size:12px;color:var(--text-muted)">' +
+        '<div style="margin-bottom:16px;font-size:12px;color:var(--text-muted);text-align:left">' +
           'Paste your Firebase web app config from ' +
           '<strong>Project Settings &gt; General &gt; Your apps</strong>. ' +
           'Need a <a href="https://console.firebase.google.com/" target="_blank" style="color:var(--green-light)">Firebase project</a> ' +
           'with <strong>Firestore</strong> enabled and <strong>Email/Password Auth</strong> enabled in Authentication.<br><br>' +
-    'After saving, log in with the admin email/password you created in Firebase Console.' +
+    'After saving, log in with the admin email/password you created in Firebase Console.<br><br>' +
+    '<strong style="color:#F0EDE8">⚠ Important:</strong> For visitors to see your data, your Firestore security rules must allow public read access. Go to your <a href="https://console.firebase.google.com/" target="_blank" style="color:var(--green-light)">Firebase Console</a> → Firestore → Rules and set:<br>' +
+    '<code style="display:block;background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:6px;margin-top:6px;white-space:pre;font-size:11px">rules_version = \'2\';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read: if true;\n      allow write: if request.auth != null;\n    }\n  }\n}</code>' +
         '</div>' +
         '<div class="btn-row">' +
           '<button class="btn-sm btn-green" onclick="saveFirebaseSettings()">Save</button>' +
